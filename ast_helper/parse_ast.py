@@ -1,8 +1,10 @@
 import ast
 import json
 
+
 def classname(cls):
     return cls.__class__.__name__
+
 
 def jsonify_ast(node, level=0):
     fields = {}
@@ -32,8 +34,9 @@ def jsonify_ast(node, level=0):
         else:
             fields[k] = 'unrecognized'
 
-    ret = { classname(node): fields }
+    ret = {classname(node): fields}
     return ret
+
 
 def make_ast(code):
     tree = ast.parse(code)
