@@ -1,4 +1,5 @@
 {
+  "vulnerability": "Evil Input",
   "sources": ["input"],
   "sinks": ["eval"]
 }

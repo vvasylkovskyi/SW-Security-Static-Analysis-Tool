@@ -30,11 +30,19 @@ def convert_python_code_to_ast_json(abstract_syntax_tree_file_path, output_file_
         json.dump(json_ast, outfile)
 
 
+def write_output_result(vulnerabilities_string, ast_json_file_path):
+    vulnerabilities_json = json.loads(vulnerabilities_string)
+    output_file_path = ast_json_file_path.split(".", 1)[0]
+    output_file_path += '.output.json'
+    with open(output_file_path, 'w') as outfile:
+        json.dump(vulnerabilities_json, outfile)
+
+
 def analyse(ast_json_file_path, vulnerability_patterns_file_path):
     print("Analysing")
-    # print(ast_json_file_path)
-    # print(vulnerability_patterns_file_path)
-    find_vulnerabilities()
+    vulnerabilities_string = find_vulnerabilities()
+    write_output_result(vulnerabilities_string, ast_json_file_path)
+    sys.exit()
 
 
 if __name__ == '__main__':

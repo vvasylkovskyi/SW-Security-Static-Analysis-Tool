@@ -33,13 +33,9 @@ def parse(trigger_word_file=default_trigger_word_file):
 
 
 def find_vulnerabilities(trigger_word_file=default_trigger_word_file):
-
-    print("Trigger path: ", trigger_word_file)
     definitions = parse(trigger_word_file)
-
+    print("Trigger path: ", trigger_word_file)
     print("definitions: ", definitions)
 
-    # vulnerability_log = VulnerabilityLog()
-    # for cfg in cfg_list:
-    #     find_vulnerabilities_in_cfg(cfg, vulnerability_log, definitions)
-    # return vulnerability_log
+    vulnerabilities = '[{}]'
+    return vulnerabilities
