@@ -3,6 +3,7 @@ import json
 
 from utils.parse_ast import make_ast
 from vulnerabilities import find_vulnerabilities
+
 # Lattice explained - https://math.stackexchange.com/questions/1646832/what-is-a-lattice-in-set-theory/1646863
 
 
