@@ -5,72 +5,64 @@ The module finds all python modules and generates an ast for them.
 import os
 
 
-_local_modules = list()
+def is_python_module(path):
+    if os.path.splitext(path)[1] == '.py':
+        return True
+    return False
+
+
+local_modules = list()
 
 
 def get_directory_modules(directory):
-    """Return a list containing tuples of
-    e.g. ('__init__', 'example/import_test_project/__init__.py')
-    """
-    if _local_modules and os.path.dirname(_local_modules[0][1]) == directory:
-        return _local_modules
 
     if not os.path.isdir(directory):
-        # example/import_test_project/A.py -> example/import_test_project
         directory = os.path.dirname(directory)
 
     if directory == '':
-        return _local_modules
+        return local_modules
+
+    if local_modules and os.path.dirname(local_modules[0][1]) == directory:
+        return local_modules
 
     for path in os.listdir(directory):
-        if _is_python_file(path):
-            # A.py -> A
+        if is_python_module(path):
             module_name = os.path.splitext(path)[0]
-            _local_modules.append((module_name, os.path.join(directory, path)))
+            local_modules.append((module_name, os.path.join(directory, path)))
 
-    return _local_modules
+    return local_modules
 
 
-def get_modules(path, prepend_module_root=True):
-    """Return a list containing tuples of
-    e.g. ('test_project.utils', 'example/test_project/utils.py')
-    """
+def get_python_modules(path):
     module_root = os.path.split(path)[1]
     modules = list()
     for root, directories, filenames in os.walk(path):
         for filename in filenames:
-            if _is_python_file(filename):
-                directory = os.path.dirname(
-                    os.path.realpath(
-                        os.path.join(
-                            root,
-                            filename
-                        )
-                    )
-                ).split(module_root)[-1].replace(
-                    os.sep,  # e.g. '/'
-                    '.'
-                )
+            if is_python_module(filename):
+                directory = os.path.dirname(os.path.realpath(os.path.join(
+                    root, filename))).split(module_root)[-1].replace(os.sep, '.')
                 directory = directory.replace('.', '', 1)
-
-                module_name_parts = []
-                if prepend_module_root:
-                    module_name_parts.append(module_root)
                 if directory:
-                    module_name_parts.append(directory)
-
-                if filename == '__init__.py':
-                    path = root
+                    modules.append(('.'.join((module_root, directory, filename.replace(
+                        '.py', ''))), os.path.join(root, filename)))
                 else:
-                    module_name_parts.append(os.path.splitext(filename)[0])
-                    path = os.path.join(root, filename)
-
-                modules.append(('.'.join(module_name_parts), path))
+                    modules.append(('.'.join((module_root, filename.replace(
+                        '.py', ''))), os.path.join(root, filename)))
 
     return modules
 
 
-def _is_python_file(path):
-    if os.path.splitext(path)[1] == '.py':
+def get_project_module_names(path):
+    project_modules = get_python_modules(path)
+    project_module_names = list()
+    for project_module in project_modules:
+        project_module_names.append(project_module[0])
+    return project_module_names
+
+
+def is_directory(path):
+    if os.path.isdir(path):
         return True
-    return False
+    elif is_python_module(path):
+        return False
+    raise Exception(path, ' has to be a python module or a directory.')

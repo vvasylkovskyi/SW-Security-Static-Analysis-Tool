@@ -6,6 +6,7 @@ from ast_helper.parse_ast import make_ast
 from vulnerabilities import find_vulnerabilities
 from cfg import make_cfg
 from ast_helper.build_ast_tree import build_ast_tree
+from core.project_handler import get_python_modules, get_directory_modules
 # Lattice explained - https://math.stackexchange.com/questions/1646832/what-is-a-lattice-in-set-theory/1646863
 
 
@@ -40,69 +41,6 @@ def write_output_result(vulnerabilities_string, ast_json_file_path):
         json.dump(vulnerabilities_json, outfile)
 
 
-def is_python_module(path):
-    if os.path.splitext(path)[1] == '.py':
-        return True
-    return False
-
-
-local_modules = list()
-
-
-def get_directory_modules(directory):
-
-    if not os.path.isdir(directory):
-        directory = os.path.dirname(directory)
-
-    if directory == '':
-        return local_modules
-
-    if local_modules and os.path.dirname(local_modules[0][1]) == directory:
-        return local_modules
-
-    for path in os.listdir(directory):
-        if is_python_module(path):
-            module_name = os.path.splitext(path)[0]
-            local_modules.append((module_name, os.path.join(directory, path)))
-
-    return local_modules
-
-
-def get_python_modules(path):
-    module_root = os.path.split(path)[1]
-    modules = list()
-    for root, directories, filenames in os.walk(path):
-        for filename in filenames:
-            if is_python_module(filename):
-                directory = os.path.dirname(os.path.realpath(os.path.join(
-                    root, filename))).split(module_root)[-1].replace(os.sep, '.')
-                directory = directory.replace('.', '', 1)
-                if directory:
-                    modules.append(('.'.join((module_root, directory, filename.replace(
-                        '.py', ''))), os.path.join(root, filename)))
-                else:
-                    modules.append(('.'.join((module_root, filename.replace(
-                        '.py', ''))), os.path.join(root, filename)))
-
-    return modules
-
-
-def get_project_module_names(path):
-    project_modules = get_python_modules(path)
-    project_module_names = list()
-    for project_module in project_modules:
-        project_module_names.append(project_module[0])
-    return project_module_names
-
-
-def is_directory(path):
-    if os.path.isdir(path):
-        return True
-    elif is_python_module(path):
-        return False
-    raise Exception(path, ' has to be a python module or a directory.')
-
-
 def analyse(file_path, vulnerability_patterns_file_path):
     print("Analysing")
 
@@ -121,9 +59,11 @@ def analyse(file_path, vulnerability_patterns_file_path):
     cfg = make_cfg(tree, project_modules, local_modules,
                    file_path, allow_local_directory_imports)
 
-    # vulnerabilities_string = find_vulnerabilities()
-    # write_output_result(vulnerabilities_string, file_path)
-    # sys.exit()
+    print(cfg)
+
+    vulnerabilities_string = find_vulnerabilities()
+    write_output_result(vulnerabilities_string, file_path)
+    sys.exit()
 
 
 if __name__ == '__main__':
