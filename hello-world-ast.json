@@ -1,1 +1,20 @@
-{"Module": {"body": [{"Expr": {"value": {"Call": {"func": {"Name": {"id": "print", "ctx": "Load"}}, "args": [{"Constant": {"value": "Hello World", "kind": null}}], "keywords": []}}}}], "type_ignores": []}}
+{
+  "Module": {
+    "body": [
+      {
+        "Expr": {
+          "value": {
+            "Call": {
+              "func": { "Name": { "id": "print", "ctx": "Load" } },
+              "args": [
+                { "Constant": { "value": "Hello World", "kind": null } }
+              ],
+              "keywords": []
+            }
+          }
+        }
+      }
+    ],
+    "type_ignores": []
+  }
+}

@@ -29,6 +29,11 @@ def analyse(ast_json_file_path, vulnerability_patterns_file_path):
     print("Analysing")
     print(ast_json_file_path)
     print(vulnerability_patterns_file_path)
+    output_file_path = ast_json_file_path.split(".", 1)[0]
+    print(output_file_path)
+    output_file_path += '.output.json'
+    with open(output_file_path, 'w') as outfile:
+        json.dump("{}", outfile)
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
