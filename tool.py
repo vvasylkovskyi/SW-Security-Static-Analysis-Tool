@@ -1,7 +1,10 @@
 import sys
 import json
 
-from utils.parse_ast import make_ast 
+from utils.parse_ast import make_ast
+from vulnerabilities import find_vulnerabilities
+# Lattice explained - https://math.stackexchange.com/questions/1646832/what-is-a-lattice-in-set-theory/1646863
+
 
 def usage(file_path):
     print('Segurança de Software - Instituto Superior Técnico / Universidade Lisboa')
@@ -18,6 +21,7 @@ def usage(file_path):
     print('  %s <file_path> ' % file_path)
     sys.exit()
 
+
 def convert_python_code_to_ast_json(abstract_syntax_tree_file_path, output_file_path):
     code = open(abstract_syntax_tree_file_path, "r").read()
     json_ast = make_ast(code)
@@ -25,10 +29,13 @@ def convert_python_code_to_ast_json(abstract_syntax_tree_file_path, output_file_
     with open(output_file_path, 'w') as outfile:
         json.dump(json_ast, outfile)
 
+
 def analyse(ast_json_file_path, vulnerability_patterns_file_path):
     print("Analysing")
-    print(ast_json_file_path)
-    print(vulnerability_patterns_file_path)
+    # print(ast_json_file_path)
+    # print(vulnerability_patterns_file_path)
+    find_vulnerabilities()
+
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
@@ -37,4 +44,4 @@ if __name__ == '__main__':
         elif sys.argv[1] == "analyse":
             analyse(sys.argv[2], sys.argv[3])
     else:
-        usage(sys.argv[0]) 
+        usage(sys.argv[0])

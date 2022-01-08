@@ -1,0 +1,228 @@
+{
+  "Module": {
+    "body": [
+      {
+        "ImportFrom": {
+          "module": "flask",
+          "names": [
+            { "alias": { "name": "Flask", "asname": null } },
+            { "alias": { "name": "request", "asname": null } },
+            { "alias": { "name": "make_response", "asname": null } }
+          ],
+          "level": 0
+        }
+      },
+      {
+        "Assign": {
+          "targets": [{ "Name": { "id": "app", "ctx": "Store" } }],
+          "value": {
+            "Call": {
+              "func": { "Name": { "id": "Flask", "ctx": "Load" } },
+              "args": [{ "Name": { "id": "__name__", "ctx": "Load" } }],
+              "keywords": []
+            }
+          },
+          "type_comment": null
+        }
+      },
+      {
+        "FunctionDef": {
+          "name": "XSS1",
+          "args": {
+            "arguments": {
+              "posonlyargs": [],
+              "args": [],
+              "vararg": null,
+              "kwonlyargs": [],
+              "kw_defaults": [],
+              "kwarg": null,
+              "defaults": []
+            }
+          },
+          "body": [
+            {
+              "Assign": {
+                "targets": [{ "Name": { "id": "param", "ctx": "Store" } }],
+                "value": {
+                  "Call": {
+                    "func": {
+                      "Attribute": {
+                        "value": {
+                          "Attribute": {
+                            "value": {
+                              "Name": { "id": "request", "ctx": "Load" }
+                            },
+                            "attr": "args",
+                            "ctx": "Load"
+                          }
+                        },
+                        "attr": "get",
+                        "ctx": "Load"
+                      }
+                    },
+                    "args": [
+                      { "Constant": { "value": "param", "kind": null } },
+                      { "Constant": { "value": "not set", "kind": null } }
+                    ],
+                    "keywords": []
+                  }
+                },
+                "type_comment": null
+              }
+            },
+            {
+              "Assign": {
+                "targets": [{ "Name": { "id": "html", "ctx": "Store" } }],
+                "value": {
+                  "Call": {
+                    "func": {
+                      "Attribute": {
+                        "value": {
+                          "Call": {
+                            "func": { "Name": { "id": "open", "ctx": "Load" } },
+                            "args": [
+                              {
+                                "Constant": {
+                                  "value": "templates/XSS_param.html",
+                                  "kind": null
+                                }
+                              }
+                            ],
+                            "keywords": []
+                          }
+                        },
+                        "attr": "read",
+                        "ctx": "Load"
+                      }
+                    },
+                    "args": [],
+                    "keywords": []
+                  }
+                },
+                "type_comment": null
+              }
+            },
+            {
+              "Assign": {
+                "targets": [{ "Name": { "id": "resp", "ctx": "Store" } }],
+                "value": {
+                  "Call": {
+                    "func": {
+                      "Name": { "id": "make_response", "ctx": "Load" }
+                    },
+                    "args": [
+                      {
+                        "Call": {
+                          "func": {
+                            "Attribute": {
+                              "value": {
+                                "Name": { "id": "html", "ctx": "Load" }
+                              },
+                              "attr": "replace",
+                              "ctx": "Load"
+                            }
+                          },
+                          "args": [
+                            {
+                              "Constant": {
+                                "value": "{{ param }}",
+                                "kind": null
+                              }
+                            },
+                            { "Name": { "id": "param", "ctx": "Load" } }
+                          ],
+                          "keywords": []
+                        }
+                      }
+                    ],
+                    "keywords": []
+                  }
+                },
+                "type_comment": null
+              }
+            },
+            {
+              "Return": { "value": { "Name": { "id": "resp", "ctx": "Load" } } }
+            }
+          ],
+          "decorator_list": [
+            {
+              "Call": {
+                "func": {
+                  "Attribute": {
+                    "value": { "Name": { "id": "app", "ctx": "Load" } },
+                    "attr": "route",
+                    "ctx": "Load"
+                  }
+                },
+                "args": [
+                  { "Constant": { "value": "/XSS_param", "kind": null } }
+                ],
+                "keywords": [
+                  {
+                    "keyword": {
+                      "arg": "methods",
+                      "value": {
+                        "List": {
+                          "elts": [
+                            { "Constant": { "value": "GET", "kind": null } }
+                          ],
+                          "ctx": "Load"
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "returns": null,
+          "type_comment": null
+        }
+      },
+      {
+        "If": {
+          "test": {
+            "Compare": {
+              "left": { "Name": { "id": "__name__", "ctx": "Load" } },
+              "ops": [{ "Eq": {} }],
+              "comparators": [
+                { "Constant": { "value": "__main__", "kind": null } }
+              ]
+            }
+          },
+          "body": [
+            {
+              "Expr": {
+                "value": {
+                  "Call": {
+                    "func": {
+                      "Attribute": {
+                        "value": { "Name": { "id": "app", "ctx": "Load" } },
+                        "attr": "run",
+                        "ctx": "Load"
+                      }
+                    },
+                    "args": [],
+                    "keywords": [
+                      {
+                        "keyword": {
+                          "arg": "debug",
+                          "value": {
+                            "Constant": { "value": true, "kind": null }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ],
+          "orelse": []
+        }
+      }
+    ],
+    "type_ignores": []
+  }
+}
