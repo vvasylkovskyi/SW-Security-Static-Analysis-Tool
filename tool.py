@@ -7,6 +7,8 @@ from vulnerabilities import find_vulnerabilities
 from cfg import make_cfg
 from ast_helper.build_ast_tree import build_ast_tree
 from core.project_handler import get_python_modules, get_directory_modules
+from fixed_point import analyse
+from constraint_table import initialize_constraint_table
 # Lattice explained - https://math.stackexchange.com/questions/1646832/what-is-a-lattice-in-set-theory/1646863
 
 
@@ -41,7 +43,7 @@ def write_output_result(vulnerabilities_string, ast_json_file_path):
         json.dump(vulnerabilities_json, outfile)
 
 
-def analyse(file_path, vulnerability_patterns_file_path):
+def run(file_path, vulnerability_patterns_file_path):
     print("Analysing")
 
     # path = os.path.normpath(file_path)
@@ -61,7 +63,11 @@ def analyse(file_path, vulnerability_patterns_file_path):
 
     print(cfg)
 
-    vulnerabilities_string = find_vulnerabilities()
+    initialize_constraint_table(cfg)
+
+    analyse(cfg)
+    vulnerabilities_string = find_vulnerabilities(
+        cfg, vulnerability_patterns_file_path)
     write_output_result(vulnerabilities_string, file_path)
     sys.exit()
 
@@ -70,7 +76,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         if sys.argv[1] == "ast2json":
             convert_python_code_to_ast_json(sys.argv[2], sys.argv[3])
-        elif sys.argv[1] == "analyse":
-            analyse(sys.argv[2], sys.argv[3])
+        elif sys.argv[1] == "run":
+            run(sys.argv[2], sys.argv[3])
     else:
         usage(sys.argv[0])

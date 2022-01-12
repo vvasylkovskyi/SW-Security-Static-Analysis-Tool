@@ -32,7 +32,7 @@ def parse(trigger_word_file=default_trigger_word_file):
     return Definitions(sources, sinks)
 
 
-def find_vulnerabilities(trigger_word_file=default_trigger_word_file):
+def find_vulnerabilities(cfg, trigger_word_file=default_trigger_word_file):
     definitions = parse(trigger_word_file)
     print("Trigger path: ", trigger_word_file)
     print("definitions: ", definitions)

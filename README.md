@@ -6,7 +6,13 @@ A tool for static analysis of software vulnerability
 
 Run the following:
 
-`$ python tool.py analyse tests/experiences/vulnerable_input_vs_eval/dummy_vulnerable_ast.json tests/experiences/vulnerable_input_vs_eval/dummy_trigger_words.json`
+### Basic Input + Eval
+
+`$ python tool.py run tests/data/vulnerable_programs/dummy_vulnerable_program.py tests/experiences/vulnerable_input_vs_eval/dummy_trigger_words.json`
+
+### XSS
+
+`$ python tool.py run tests/data/vulnerable_programs/XSS_call.py tests/experiences/vulnerable_input_vs_eval/dummy_trigger_words.json`
 
 ## Using online CFG tool - staticfg
 
