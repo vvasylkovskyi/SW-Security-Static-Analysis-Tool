@@ -39,16 +39,16 @@ def write_output_result(vulnerabilities_string, ast_json_file_path):
 
 
 def run(file_path, vulnerability_patterns_file_path):
-    print("Analysing")
+    # print("Analysing")
 
-    print("PATH: ", file_path)
+    # print("PATH: ", file_path)
 
     # TODO
     # Currently working by reading python slices
     # This is wrong
     # Need to work by reading AST from JSON
     tree = build_from_file(file_path)
-    print("TREE: ", tree)
+    # print("TREE: ", tree)
 
     cfg = make_cfg(tree)
 

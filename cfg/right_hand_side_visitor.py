@@ -12,9 +12,13 @@ class RightHandSideVisitor(NodeVisitor):
         self.result = list()
 
     def visit_Name(self, node):
+        # print("HEdsfdsfsdfsRE")
         self.result.append(node.id)
 
     def visit_Call(self, node):
+        # print("WHATSAAAAAAP")
+        # print("NODE ARGS:", node.args)
+        # print("NODE KEYWORDS: ", node.keywords)
         if node.args:
             for arg in node.args:
                 self.visit(arg)

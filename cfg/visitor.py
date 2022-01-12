@@ -1,7 +1,8 @@
 
 import ast
 from cfg.right_hand_side_visitor import RightHandSideVisitor
-from cfg.node import IgnoredNode, Node, EntryExitNode, ControlFlowNode, FunctionNode, ConnectStatements
+from cfg.label_visitor import LabelVisitor
+from cfg.node import AssignmentNode, IgnoredNode, Node, EntryExitNode, ControlFlowNode, FunctionNode, ConnectStatements
 
 
 class Visitor(ast.NodeVisitor):
@@ -23,28 +24,31 @@ class Visitor(ast.NodeVisitor):
     def init_cfg(self, tree):
         print("Starting visitor")
 
-        self.append_node(EntryExitNode("Entry node"))
+        entry_node = self.append_node(EntryExitNode("Entry node"))
 
-        print("Node: ", tree.body)
+        # print("Node: ", tree.body)
 
-        print("Self nodes: ", self.nodes)
+        # print("Self nodes: ", self.nodes)
         statements = self.handle_initialize_statements(tree.body)
 
+        print("THE END STATEMENTS")
         first_node = statements.first_statement
 
+        entry_node.connect(first_node)
         print("First! ", first_node)
-        self.append_node(EntryExitNode("Exit node"))
+        exit_node = self.append_node(EntryExitNode("Exit node"))
 
-        # last_nodes = statements.last_statements
-        # print("Last! ", last_nodes)
+        last_nodes = statements.last_statements
+        exit_node.connect_predecessors(last_nodes)
+        print("Last! ", last_nodes)
 
-        visit_result = self.visit(tree)
+        # visit_result = self.visit(tree)
         # print(visit_result)
 
-    def append_node(self, Node):
+    def append_node(self, node):
         """Append a node to the CFG and return it."""
-        self.nodes.append(Node)
-        return Node
+        self.nodes.append(node)
+        return node
 
     def should_connect_node(self, node):
         if isinstance(node, IgnoredNode):
@@ -78,33 +82,88 @@ class Visitor(ast.NodeVisitor):
         cfg_statements = list()
         break_nodes = list()
 
-        # print("Statements: ", statements)
         for statement in statements:
             print("--------Statement-------")
             print("Stmt: ", statement)
             node = self.visit(statement)
-            print("Node: ", node)
             print("------------------------")
-            # print("Node ? :", node)
             if self.should_connect_node(node):
                 cfg_statements.append(node)
 
-        # self.connect_nodes(cfg_statements)
         print("Final cfg statements: ", cfg_statements)
+        # self.connect_nodes(cfg_statements)
         if cfg_statements:  # When body of module only contains ignored nodes
-            # print("HERE")
             first_statement = self.get_first_statement(cfg_statements[0])
-            print("First: ", first_statement)
             last_statements = self.get_last_statements(cfg_statements)
-            print("Last: ", last_statements)
             return ConnectStatements(first_statement=first_statement, last_statements=last_statements, break_statements=break_nodes)
+
+    def assignment_call_node(self, left_hand_label, ast_node):
+        # print("HERE")
+        """Handle assignments that contain a function call on its right side."""
+        # self.undecided = True # Used for handling functions in assignments
+        rhs_visitor = RightHandSideVisitor()
+        rhs_visitor.visit(ast_node.value)
+        # print("VALUE: ", ast_node.value)
+        call = self.visit(ast_node.value)
+        print("CALL: ", call)
+        call_label = ''
+        call_assignment = None
+        # call_label = call.label
+        # call_assignment = AssignmentNode(left_hand_label + ' = ' + call_label, left_hand_label,
+        #  ast_node, rhs_visitor.result, line_number = ast_node.lineno, path = "")
+        call_label = call.label
+        call_assignment = AssignmentNode(left_hand_label + ' = ' + call_label, left_hand_label,
+                                         ast_node, rhs_visitor.result, line_number=ast_node.lineno, path="")
+
+        self.nodes.append(call_assignment)
+        return call_assignment
+
+    def get_names(self, node, result):
+        """Recursively finds all names."""
+        if isinstance(node, ast.Name):
+            return node.id + result
+        elif isinstance(node, ast.Subscript):
+            return result
+        else:
+            return self.get_names(node.value, result + '.' + node.attr)
+
+    def extract_left_hand_side(self, target):
+        """Extract the left hand side varialbe from a target.
+        Removes list indexes, stars and other left hand side elements.
+        """
+        left_hand_side = self.get_names(target, '')
+
+        left_hand_side.replace('*', '')
+        if '[' in left_hand_side:
+            index = left_hand_side.index('[')
+            left_hand_side = target[0:index]
+
+        return left_hand_side
 
     def visit_Call(self, node):
         print("Visit Call")
+        label_visitor = LabelVisitor()
+        label_visitor.visit(node)
+        return Node(label_visitor.result, node,
+                    line_number=node.lineno, path="")
 
     def visit_Assign(self, node):
-        print("Visit Assign")
+        # print("Visit Assign")
         rhs_visitor = RightHandSideVisitor()
+        # print("Node value: ", node.value)
+        rhs_visitor.visit(node.value)
+        # print("Targets: ", node.targets)
+        if isinstance(node.value, ast.Call):  # x = call()
+            # print("TESTESTSE")
+            label_visitor = LabelVisitor()
+            label_visitor.visit(node.targets[0])
+            # print("Targets: ", node.targets[0])
+            # print("WHAT IS THE RESULT : ", label_visitor.result)
+            return self.assignment_call_node(label_visitor.result, node)
+        else:
+            label_visitor = LabelVisitor()
+            label_visitor.visit(node)
+            return self.append_node(AssignmentNode(label_visitor.result, self.extract_left_hand_side(node.targets[0]), node, rhs_visitor.result, line_number=node.lineno, path=""))
 
     def visit_Expr(self, node):
         print("Visit expr:", node.value)

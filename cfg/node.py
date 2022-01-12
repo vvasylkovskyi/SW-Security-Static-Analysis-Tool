@@ -22,6 +22,19 @@ class Node(object):
         self.old_constraint = set()
         self.new_constraint = set()
 
+    def connect(self, successor):
+        """Connect this node to its successor node by setting its outgoing and the successors ingoing."""
+        if isinstance(self, ConnectToExitNode) and not type(successor) is EntryExitNode:
+            return
+        self.outgoing.append(successor)
+        successor.ingoing.append(self)
+
+    def connect_predecessors(self, predecessors):
+        """Connect all nodes in predecessors to this node."""
+        for n in predecessors:
+            self.ingoing.append(n)
+            n.outgoing.append(self)
+
 
 ControlFlowNode = namedtuple(
     'ControlFlowNode',
@@ -61,3 +74,29 @@ class EntryExitNode(Node):
     def __init__(self, label):
         super(EntryExitNode, self).__init__(
             label, None, line_number=None, path=None)
+
+
+class ConnectToExitNode():
+    pass
+
+
+class AssignmentNode(Node):
+    """CFG Node that represents an assignment."""
+
+    def __init__(self, label, left_hand_side, ast_node, right_hand_side_variables, *, line_number, path):
+        """Create an Assignment node.
+        Args:
+            label (str): The label of the node, describing the expression it represents.
+            left_hand_side(str): The variable on the left hand side of the assignment. Used for analysis.
+            right_hand_side_variables(list[str]): A list of variables on the right hand side.
+            line_number(Optional[int]): The line of the expression the Node represents.
+        """
+        super(AssignmentNode, self).__init__(
+            label, ast_node, line_number=line_number, path=path)
+        self.left_hand_side = left_hand_side
+        self.right_hand_side_variables = right_hand_side_variables
+
+    def __repr__(self):
+        output_string = super(AssignmentNode, self).__repr__()
+        output_string += '\n'
+        return ''.join((output_string, 'left_hand_side:\t', str(self.left_hand_side), '\n', 'right_hand_side_variables:\t', str(self.right_hand_side_variables)))
