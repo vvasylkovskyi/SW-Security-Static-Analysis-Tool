@@ -1,14 +1,9 @@
 import sys
 import json
-import os
-import ast
 from ast_helper.parse_ast import make_ast
-from vulnerabilities import find_vulnerabilities
 from cfg.make_cfg import make_cfg
-from ast_helper.build_ast_tree import build_ast_tree, build_from_file
-from core.project_handler import get_python_modules, get_directory_modules
-from fixed_point import analyse
-from constraint_table import initialize_constraint_table
+from ast_helper.build_ast_tree import build_from_file
+
 # Lattice explained - https://math.stackexchange.com/questions/1646832/what-is-a-lattice-in-set-theory/1646863
 
 
@@ -46,14 +41,7 @@ def write_output_result(vulnerabilities_string, ast_json_file_path):
 def run(file_path, vulnerability_patterns_file_path):
     print("Analysing")
 
-    # path = os.path.normpath(file_path)
-
     print("PATH: ", file_path)
-
-    # directory = os.path.dirname(file_path)
-    # project_modules = get_python_modules(directory)
-    # local_modules = get_directory_modules(directory)
-    # allow_local_directory_imports = True
 
     # TODO
     # Currently working by reading python slices
@@ -64,14 +52,8 @@ def run(file_path, vulnerability_patterns_file_path):
 
     cfg = make_cfg(tree)
 
-    # print(cfg)
+    print(cfg)
 
-    # initialize_constraint_table(cfg)
-
-    # analyse(cfg)
-    # vulnerabilities_string = find_vulnerabilities(
-    #     cfg, vulnerability_patterns_file_path)
-    # write_output_result(vulnerabilities_string, file_path)
     sys.exit()
 
 

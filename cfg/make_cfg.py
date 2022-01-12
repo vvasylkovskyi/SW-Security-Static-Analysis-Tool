@@ -1,5 +1,4 @@
 from cfg.visitor import Visitor
-from .expr_visitor import ExprVisitor
 
 
 class CFG():

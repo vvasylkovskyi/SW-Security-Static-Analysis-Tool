@@ -1,5 +1,6 @@
 
 import ast
+from cfg.right_hand_side_visitor import RightHandSideVisitor
 from cfg.node import IgnoredNode, Node, EntryExitNode, ControlFlowNode, FunctionNode, ConnectStatements
 
 
@@ -102,7 +103,8 @@ class Visitor(ast.NodeVisitor):
         print("Visit Call")
 
     def visit_Assign(self, node):
-        print("Assign")
+        print("Visit Assign")
+        rhs_visitor = RightHandSideVisitor()
 
     def visit_Expr(self, node):
         print("Visit expr:", node.value)
