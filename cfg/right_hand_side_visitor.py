@@ -1,10 +1,10 @@
 """Contains a class that finds all names.
 Used to find all variables on a right hand side(RHS) of assignment.
 """
-import ast
+from ast import NodeVisitor
 
 
-class RHSVisitor(ast.NodeVisitor):
+class RightHandSideVisitor(NodeVisitor):
     """Visitor collecting all names."""
 
     def __init__(self):
@@ -21,14 +21,3 @@ class RHSVisitor(ast.NodeVisitor):
         if node.keywords:
             for keyword in node.keywords:
                 self.visit(keyword)
-
-    def visit_IfExp(self, node):
-        # The test doesn't taint the assignment
-        self.visit(node.body)
-        self.visit(node.orelse)
-
-    @classmethod
-    def result_for_node(cls, node):
-        visitor = cls()
-        visitor.visit(node)
-        return visitor.result

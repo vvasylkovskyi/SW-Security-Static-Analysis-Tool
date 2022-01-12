@@ -1,3 +1,4 @@
+from cfg.visitor import Visitor
 from .expr_visitor import ExprVisitor
 
 
@@ -5,12 +6,8 @@ class CFG():
     def __init__(
         self,
         nodes,
-        blackbox_assignments,
-        filename
     ):
         self.nodes = nodes
-        self.blackbox_assignments = blackbox_assignments
-        self.filename = filename
 
     def __repr__(self):
         output = ''
@@ -27,24 +24,7 @@ class CFG():
         return output
 
 
-def make_cfg(
-    tree,
-    project_modules,
-    local_modules,
-    filename,
-    module_definitions=None,
-    allow_local_directory_imports=True
-):
-    visitor = ExprVisitor(
-        tree,
-        project_modules,
-        local_modules,
-        filename,
-        module_definitions,
-        allow_local_directory_imports
-    )
-    return CFG(
-        visitor.nodes,
-        visitor.blackbox_assignments,
-        filename
-    )
+def make_cfg(tree):
+    visitor = Visitor(tree)
+
+    return CFG(visitor.nodes)

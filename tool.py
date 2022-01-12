@@ -4,8 +4,8 @@ import os
 import ast
 from ast_helper.parse_ast import make_ast
 from vulnerabilities import find_vulnerabilities
-from cfg import make_cfg
-from ast_helper.build_ast_tree import build_ast_tree
+from cfg.make_cfg import make_cfg
+from ast_helper.build_ast_tree import build_ast_tree, build_from_file
 from core.project_handler import get_python_modules, get_directory_modules
 from fixed_point import analyse
 from constraint_table import initialize_constraint_table
@@ -50,25 +50,28 @@ def run(file_path, vulnerability_patterns_file_path):
 
     print("PATH: ", file_path)
 
-    directory = os.path.dirname(file_path)
-    project_modules = get_python_modules(directory)
-    local_modules = get_directory_modules(directory)
-    allow_local_directory_imports = True
+    # directory = os.path.dirname(file_path)
+    # project_modules = get_python_modules(directory)
+    # local_modules = get_directory_modules(directory)
+    # allow_local_directory_imports = True
 
-    tree = build_ast_tree(file_path)
-    print("TREE: ", ast.dump(tree))
+    # TODO
+    # Currently working by reading python slices
+    # This is wrong
+    # Need to work by reading AST from JSON
+    tree = build_from_file(file_path)
+    print("TREE: ", tree)
 
-    cfg = make_cfg(tree, project_modules, local_modules,
-                   file_path, allow_local_directory_imports)
+    cfg = make_cfg(tree)
 
-    print(cfg)
+    # print(cfg)
 
-    initialize_constraint_table(cfg)
+    # initialize_constraint_table(cfg)
 
-    analyse(cfg)
-    vulnerabilities_string = find_vulnerabilities(
-        cfg, vulnerability_patterns_file_path)
-    write_output_result(vulnerabilities_string, file_path)
+    # analyse(cfg)
+    # vulnerabilities_string = find_vulnerabilities(
+    #     cfg, vulnerability_patterns_file_path)
+    # write_output_result(vulnerabilities_string, file_path)
     sys.exit()
 
 

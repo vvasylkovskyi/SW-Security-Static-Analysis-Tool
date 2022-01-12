@@ -6,6 +6,10 @@ A tool for static analysis of software vulnerability
 
 Run the following:
 
+### First Slice 1a-baic-flow
+
+`$ python tool.py run slices/1a-basic-flow.py slices/1a-patterns.json`
+
 ### Basic Input + Eval
 
 `$ python tool.py run tests/data/vulnerable_programs/dummy_vulnerable_program.py tests/experiences/vulnerable_input_vs_eval/dummy_trigger_words.json`
