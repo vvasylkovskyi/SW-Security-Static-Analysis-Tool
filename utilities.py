@@ -15,3 +15,8 @@ def fix_not_openable_json(path, replacements):
         r = r.replace(old,new)
     with path.open("w") as fp:
         fp.write(r)
+
+
+greek_letters_lowercase = tuple(map(chr, range(0x03b1, 0x03c9+1)))
+greek_letters_uppercase = tuple(map(chr, range(0x0391, 0x03a9+1)))
+

@@ -23,14 +23,14 @@ class Test:
         return f"{self.id}: {self.name}"
 
 slices = Path("slices")
-
+slices_url = "https://fenix.tecnico.ulisboa.pt/downloadFile/563568428829723/slices.zip"
 
 def extract():
     if not slices.exists():
         slices.mkdir()
         archive = slices.with_suffix(".zip")
         if not archive.exists():
-            raise RuntimeError(f"{zip} does not exist")
+            raise RuntimeError(f"{archive} does not exist, download {slices_url}")
         zip = ZipFile(archive)
         zip.extractall(slices)
         zip.close()
@@ -63,7 +63,7 @@ def main():
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--extract", action='store_true', help="flag to extract slices from zip archive (https://fenix.tecnico.ulisboa.pt/downloadFile/563568428829723/slices.zip)") #action=argparse.BooleanOptionalAction 3.10
+    parser.add_argument("--extract", action='store_true', help=f"flag to extract slices from zip archive ({slices_url})") #action=argparse.BooleanOptionalAction 3.10
     parser.add_argument("--fix_outputs", action='store_true', help="flag to fix output files by replacing single quotes by double quotes")
 
     args = parser.parse_args()
