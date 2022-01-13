@@ -1,9 +1,29 @@
 # SW-Security-Static-Analysis-Tool
 
-A tool for static analysis of software vulnerability
+A tool for static (tainted flows?) analysis of software vulnerability
 
-## Testing the dummy example - Vulnerable Source: (input) && Vulnerable Sink: (eval)
+`python3 tf_analyser.py -h`
 
-Run the following:
+positional arguments:
 
-`$ python tool.py analyse tests/experiences/vulnerable_input_vs_eval/dummy_vulnerable_ast.json tests/experiences/vulnerable_input_vs_eval/dummy_trigger_words.json`
+  program     path of a JSON file containing the program slice to analyse,
+              represented in the form of an Abstract Syntax Tree
+
+  patterns    path of a JSON file containing the list of vulnerability
+              patterns to consider
+
+optional arguments:
+  -h, --help  show this help message and exit
+
+`python3 test.py -h`
+
+usage: test.py [-h] [--extract] [--fix_outputs]
+
+optional arguments:
+
+  -h, --help     show this help message and exit
+
+  --extract      flag to extract slices from zip archive (https://fenix.tecnico.ulisboa.pt/downloadFile/563568428829723/slices.zip)
+
+  --fix_outputs  flag to fix output files by replacing single quotes by double
+                 quotes
