@@ -35,6 +35,41 @@ class Node(object):
             self.ingoing.append(n)
             n.outgoing.append(self)
 
+    def __str__(self):
+        """Print the label of the node."""
+        return ' '.join(('Label: ', self.label))
+
+    # def __repr__(self):
+    #     """Print a representation of the node."""
+    #     label = ' '.join(('Label: ', self.label))
+    #     line_number = 'Line number: ' + str(self.line_number)
+    #     outgoing = ''
+    #     ingoing = ''
+    #     if self.ingoing is not None:
+    #         ingoing = ' '.join(
+    #             ('ingoing:\t', str([x.label for x in self.ingoing])))
+    #     else:
+    #         ingoing = ' '.join(('ingoing:\t', '[]'))
+
+    #     if self.outgoing is not None:
+    #         outgoing = ' '.join(
+    #             ('outgoing:\t', str([x.label for x in self.outgoing])))
+    #     else:
+    #         outgoing = ' '.join(('outgoing:\t', '[]'))
+
+    #     if self.old_constraint is not None:
+    #         old_constraint = 'Old constraint:\t ' + \
+    #             ', '.join([x.label for x in self.old_constraint])
+    #     else:
+    #         old_constraint = 'Old constraint:\t '
+
+    #     if self.new_constraint is not None:
+    #         new_constraint = 'New constraint: ' + \
+    #             ', '.join([x.label for x in self.new_constraint])
+    #     else:
+    #         new_constraint = 'New constraint:'
+    #     return '\n' + '\n'.join((label, line_number, ingoing, outgoing, old_constraint, new_constraint))
+
 
 ControlFlowNode = namedtuple(
     'ControlFlowNode',

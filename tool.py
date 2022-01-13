@@ -3,6 +3,7 @@ import json
 from ast_helper.parse_ast import make_ast
 from cfg.make_cfg import make_cfg
 from ast_helper.build_ast_tree import build_from_file
+from vulnerabilities import find_vulnerabilities
 
 # Lattice explained - https://math.stackexchange.com/questions/1646832/what-is-a-lattice-in-set-theory/1646863
 
@@ -52,7 +53,11 @@ def run(file_path, vulnerability_patterns_file_path):
 
     cfg = make_cfg(tree)
 
-    print(cfg)
+    # analyse(cfg)
+
+    find_vulnerabilities(cfg, vulnerability_patterns_file_path)
+
+    # print(tree)
 
     sys.exit()
 
