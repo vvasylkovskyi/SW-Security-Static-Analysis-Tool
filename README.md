@@ -27,3 +27,6 @@ optional arguments:
 
   --fix_outputs  flag to fix output files by replacing single quotes by double
                  quotes
+
+To see the proof of concept for visiting the ast as json given as input to the main tool run
+`python3 test.py --test_visitor`

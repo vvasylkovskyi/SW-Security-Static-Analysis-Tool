@@ -1,20 +1,14 @@
 import json
+
 def load_json(path):
     with path.open("r") as fp:
         d = json.load(fp)
     return d
 
-def dump_json(path, data):
+def dump_json(path, data, **kwargs):
     with path.open("w") as fp:
-        json.dump(data, fp)
+        json.dump(data, fp, **kwargs)
 
-def fix_not_openable_json(path, replacements):
-    with path.open() as fp:
-        r = fp.read()
-    for old,new in replacements:
-        r = r.replace(old,new)
-    with path.open("w") as fp:
-        fp.write(r)
 
 
 greek_letters_lowercase = tuple(map(chr, range(0x03b1, 0x03c9+1)))
