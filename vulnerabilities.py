@@ -2,8 +2,8 @@
 import os
 from collections import namedtuple
 import json
-
-from cfg.node import AssignmentNode
+import ast
+from cfg.node import AssignmentNode, Node
 
 SOURCES_KEYWORD = 'sources'
 SINKS_KEYWORD = 'sinks'
@@ -64,9 +64,9 @@ def get_trigger_node_that_contains_label(node, triggers):
     for trigger in triggers:
         # print("TRIGGERRRERE: ", trigger)
         # print("Node Label: ", node.label)
-        print("Trigger: ", trigger)
+        # print("Trigger: ", trigger)
         if trigger in node.label:
-            print("TRIGGER WORD: ", trigger)
+            # print("TRIGGER WORD: ", trigger)
             return TriggerNode(trigger, node)
 
 
@@ -83,10 +83,43 @@ def find_triggers(nodes, triggers):
     return trigger_nodes
 
 
+def get_sink_args(cfg_node):
+    if type(cfg_node) == AssignmentNode:
+        return get_sink_args(cfg_node.ast_node.value)
+    # elif isinstance(cfg_node, Node):
+    #     return get_sink_args(cfg_node.ast_node)
+    # elif isinstance(cfg_node, ast.Call):
+    #     args = list()
+    #     for arg in cfg_node.args + cfg_node.keywords:
+    #         if isinstance(arg, ast.Name):
+    #             args.append(arg.id)
+    #         elif isinstance(arg, ast.Str):
+    #             args.append(arg.s)
+    #         elif isinstance(arg, ast.Call):
+    #             args.extend(get_sink_args(arg))
+    #         elif isinstance(arg, ast.keyword):
+    #             args.append(arg.value)
+    #         elif isinstance(arg, ast.Attribute):
+    #             import ast_helper
+    #             args.append(ast_helper.get_call_names_as_string(arg))
+    #         else:
+    #             raise Exception('Unexpected argument type:', type(arg))
+    #     return args
+    # elif isinstance(cfg_node, ast.Str):
+    #     return None
+    # else:
+    #     raise Exception('Unexpected node type:', type(cfg_node))
+
+
 def get_vulnerability(source, sink):
     print("Getting vulnerability based on:\n")
     print("Source: ", source)
     print("Sink: ", sink)
+    print("source CFG: ", source.cfg_node.label)
+    print("Source cfg new constraint: ", source.cfg_node.new_constraint)
+    source_in_sink = source.cfg_node in sink.cfg_node.new_constraint
+    # lhs_in_sink_args
+    print("Source in sink: ", source_in_sink)
 
 
 def find_vulnerabilities_in_cfg(cfg, vulnerability_definition):
