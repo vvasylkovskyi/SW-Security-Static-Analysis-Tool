@@ -30,3 +30,7 @@ optional arguments:
 
 To see the proof of concept for visiting the ast as json given as input to the main tool run
 `python3 test.py --test_visitor`
+
+
+To generate a visitor pattern skeleton
+`python3 generate_visitors.py tf_visitor slices/*.py.json --framework`

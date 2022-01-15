@@ -8,47 +8,48 @@ Using the terms in the definition of the Python's AST module, the mandatory cons
 """
 
 from collections import defaultdict
-import string
 
 #TODO indentation level, how to
 
 INDENTATION = "    "
-indentation = ""
 
-def novisit(data):
-    raise NotImplementedError(f"no visitor implemented for {data['ast_type']}")
+def novisit(node, **kwargs):
+    raise NotImplementedError(f"no visitor implemented for {node['ast_type']}")
 
-def visit_component(data):
-    # print(data);print()
-    return ast_type_visitors[data['ast_type']](data)
+def visit_node(node, **kwargs):
+    # print(node);print()
+    return ast_type_visitors[node['ast_type']](node, **kwargs)
 
-def visit_components(data, key):
-    return tuple(ast_type_visitors[e['ast_type']](e) for e in data[key])
+def visit_nodes(nodes, **kwargs):
+    return tuple(ast_type_visitors[e['ast_type']](e, **kwargs) for e in nodes)
 
-def visit_Module(data):
+def visit_Module(node, **kwargs):
     """
-    :param data: {
+    :param node: {
         'ast_type': 'Module',
         'body': [...]
     }
     :return:
     """
+    return visit_nodes(node['body'], indentation_level=0)
 
-    return visit_components(data, 'body')
-
-def visit_Assign(data):
+def visit_Assign(node, **kwargs):
     """
-    :param data:
+    :param node:
     :return:
     """
-    targets = visit_components(data, 'targets')
-    value = visit_component(data['value'])
-    r = f"{','.join(targets)}={value}"
+    
+    targets = visit_nodes(node['targets'], **kwargs)
+    value = visit_node(node['value'], **kwargs)
+    # r = f"{','.join(targets)}={value}"
+    r = f"{kwargs['indentation_level']*INDENTATION}{','.join(targets)}={value}"
+
     return r
 
-def visit_Name(data):
+
+def visit_Name(node, **kwargs):
     """
-    :param data: {
+    :param node: {
         'ast_type': 'Name',
         'col_offset': 2,
         'ctx': {'ast_type': 'Load'},
@@ -57,20 +58,21 @@ def visit_Name(data):
     }
     :return:
     """
-    # alpha data['id']
+    # alpha node['id']
+    return node['id']
 
-    return data['id']
 
-def visit_Str(data):
+def visit_Str(node, **kwargs):
     """
-    :param data: {'ast_type': 'Str', 'col_offset': 2, 'lineno': 1, 's': ''}
+    :param node: {'ast_type': 'Str', 'col_offset': 2, 'lineno': 1, 's': ''}
     :return:
     """
-    return repr(data['s'])
+    return repr(node['s'])
 
-def visit_Call(data):
+
+def visit_Call(node, **kwargs):
     """
-    :param data:
+    :param node:
         {'args': [],
          'ast_type': 'Call',
          'col_offset': 2,
@@ -86,165 +88,170 @@ def visit_Call(data):
         }
     :return:
     """
-    args = visit_components(data, 'args')
-    func = visit_component(data['func'])
+    args = visit_nodes(node['args'], **kwargs)
+    func = visit_node(node['func'], **kwargs)
     r = f"{func}({','.join(args)})"
     return r
 
-def visit_Expr(data):
-    """
-    :param data:
-    :return:
-    """
-    value = visit_component(data['value'])
-    return value
 
-def visit_BinOp(data):
+def visit_Expr(node, **kwargs):
     """
-    :param data:
+    :param node:
     :return:
     """
-    left = visit_component(data['left'])
-    right = visit_component(data['right'])
-    op = visit_component(data['op'])
+    
+    value = visit_node(node['value'], **kwargs)
+    return f"{kwargs['indentation_level']*INDENTATION}{value}"
+
+
+def visit_BinOp(node, **kwargs):
+    """
+    :param node:
+    :return:
+    """
+    left = visit_node(node['left'], **kwargs)
+    right = visit_node(node['right'], **kwargs)
+    op = visit_node(node['op'], **kwargs)
     representation = f"{left}{op}{right}"
     return representation
 
-def visit_Add(data):
+
+def visit_Compare(node, **kwargs):
     """
-    :param data:
+    :param node:
+    :return:
+    """
+    left = visit_node(node['left'], **kwargs)
+    comparators = visit_nodes(node['comparators'], **kwargs)
+    ops = visit_nodes(node['ops'], **kwargs)
+    representation = f"{left}{','.join(ops)}{','.join(comparators)}"
+    return representation
+
+
+def visit_If(node, **kwargs):
+    """
+    :param node:
+    :return:
+    """
+
+    test = visit_node(node['test'], **kwargs)
+
+    indentation_level = kwargs['indentation_level']
+    indentation = indentation_level * INDENTATION
+
+    representation = f"{indentation}if({test}):\n"
+
+    body = visit_nodes(node['body'], indentation_level=indentation_level+1)
+    representation += "\n".join(body)
+
+    orelse = visit_nodes(node['orelse'], indentation_level=indentation_level+1)
+
+    if orelse:
+        representation += f"\n{indentation}else:\n"
+        representation += "\n".join(orelse)
+
+    return representation
+
+
+def visit_While(node, **kwargs):
+    """
+    :param node:
+    :return:
+    """
+    indentation_level = kwargs['indentation_level']
+    indentation = indentation_level * INDENTATION
+
+    test = visit_node(node['test'], **kwargs)
+    body = visit_nodes(node['body'], indentation_level=indentation_level+1)
+
+    representation = f"{indentation}while ({test}):\n"
+    representation += "\n".join(body)
+
+    return representation
+
+
+def visit_Break(node, **kwargs):
+    """
+    :param node:
+    :return:
+    """
+    return f"{kwargs['indentation_level'] * INDENTATION}break"
+
+
+def visit_Add(node, **kwargs):
+    """
+    :param node:
     :return:
     """
     return '+'
 
-def visit_If(data):
+
+def visit_Num(node, **kwargs):
     """
-    :param data:
+    :param node:
     :return:
     """
-    # indentation_level = data['col_offset']
-    # col_offset = data['col_offset']
-    global indentation
-    old_indentation = indentation
-    indentation = data['col_offset']*' '
-    test = visit_component(data['test'])
-    body = visit_components(data, 'body')
-    representation = f"{indentation}if({test}):\n"
-    orelse = visit_components(data, 'orelse')
-    for l in body:
-        indent = "" if any({l.lstrip().startswith("if"), l.lstrip().startswith("while")}) else indentation+INDENTATION
-        representation += f"{indent}{l}\n"
-    if orelse:
-        representation += f"{indentation}else:\n"
-        representation += "\n".join(f"{indentation+INDENTATION}{e}" for e in orelse)
-
-    indentation = old_indentation
-    return representation
-
-def visit_Break(data):
-    """
-    :param data:
-    :return:
-    """
-    # key = "k"
-    # return data[key]
-    return "break"
+    return visit_node(node['n'], **kwargs)
 
 
-def visit_Store(data):
+def visit_NotEq(node, **kwargs):
     """
-    :param data:
-    :return:
-    """
-    # key = "k"
-    # return data[key]
-    raise NotImplementedError(f"visitor for ast_type Store not implemented")
-
-
-def visit_Compare(data):
-    """
-    :param data:
-    :return:
-    """
-    left = visit_component(data['left'])
-    comparators = visit_components(data, 'comparators')
-    ops = visit_components(data, 'ops')
-    representation = f"{left}{','.join(ops)}{','.join(comparators)}"
-    return representation
-
-def visit_Num(data):
-    """
-    :param data:
-    :return:
-    """
-    return visit_component(data['n'])
-
-
-def visit_NotEq(data):
-    """
-    :param data:
+    :param node:
     :return:
     """
     return "!="
 
 
-def visit_Load(data):
+def visit_Eq(node, **kwargs):
     """
-    :param data:
-    :return:
-    """
-    raise NotImplementedError(f"visitor for ast_type Load not implemented")
-
-
-def visit_Eq(data):
-    """
-    :param data:
+    :param node:
     :return:
     """
     return "=="
 
 
-def visit_int(data):
+def visit_int(node, **kwargs):
     """
-    :param data:
+    :param node:
     :return:
     """
     key = "n_str"
-    return data[key]
+    return node[key]
 
 
-def visit_Gt(data):
+def visit_Gt(node, **kwargs):
     """
-    :param data:
+    :param node:
     :return:
     """
     return ">"
 
 
-def visit_While(data):
+def visit_Lt(node, **kwargs):
     """
-    :param data:
-    :return:
-    """
-    global indentation
-    old_indentation = indentation
-    indentation = data['col_offset']*' '
-    test = visit_component(data['test'])
-    body = visit_components(data, 'body')
-    representation = f"{indentation}while ({test}):\n"
-    for l in body:
-        indent = "" if any({l.lstrip().startswith("if"), l.lstrip().startswith("while")}) else indentation+INDENTATION
-        representation += f"{indent}{l}\n"
-    indentation = old_indentation
-    return representation
-
-
-def visit_Lt(data):
-    """
-    :param data:
+    :param node:
     :return:
     """
     return "<"
+
+
+def visit_Load(node, **kwargs):
+    """
+    :param node:
+    :return:
+    """
+    raise NotImplementedError(f"visitor for ast_type Load not implemented")
+
+
+def visit_Store(node, **kwargs):
+    """
+    :param node:
+    :return:
+    """
+    # key = "k"
+    # return node[key]
+    raise NotImplementedError(f"visitor for ast_type Store not implemented")
+
 
 ast_type_visitors = defaultdict(lambda : novisit)
 
@@ -272,4 +279,3 @@ implemented_ast_type_visitors = {
     'Assign':visit_Assign,
 }
 ast_type_visitors.update(implemented_ast_type_visitors)
-

@@ -1,7 +1,7 @@
 import pprint
 
 from utilities import load_json, greek_letters_lowercase
-from src_visitor import visit_component
+from src_visitor import visit_node
 
 class TypeQualifers:
     TAINTED = "tainted"
@@ -9,7 +9,7 @@ class TypeQualifers:
 
 def visit_ast(jast):
     # pprint.pprint(jast)
-    visited = visit_component(jast)
+    visited = visit_node(jast)
     # pprint.pprint(visited)
     print("\n".join(visited))
     return
