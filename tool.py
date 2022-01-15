@@ -83,7 +83,7 @@ def run(file_path, vulnerability_patterns_file_path):
     vulnerabilities = find_vulnerabilities(
         cfg, vulnerability_patterns_file_path)
 
-    print_vulnerabilities_to_json(vulnerabilities, file_path)
+    # print_vulnerabilities_to_json(vulnerabilities, file_path)
 
     sys.exit()
 

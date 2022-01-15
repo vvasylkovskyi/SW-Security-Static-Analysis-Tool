@@ -148,13 +148,13 @@ class Visitor(ast.NodeVisitor):
                     line_number=node.lineno, path="")
 
     def visit_Assign(self, node):
-        # print("Visit Assign")
+        print("Visit Assign")
         rhs_visitor = RightHandSideVisitor()
         # print("Node value: ", node.value)
         rhs_visitor.visit(node.value)
         # print("Targets: ", node.targets)
         if isinstance(node.value, ast.Call):  # x = call()
-            # print("TESTESTSE")
+            print("TESTESTSE")
             label_visitor = LabelVisitor()
             label_visitor.visit(node.targets[0])
             # print("Targets: ", node.targets[0])
@@ -162,6 +162,7 @@ class Visitor(ast.NodeVisitor):
             return self.assignment_call_node(label_visitor.result, node)
         else:
             label_visitor = LabelVisitor()
+            print("HEREdsdsd")
             label_visitor.visit(node)
             return self.append_node(AssignmentNode(label_visitor.result, self.extract_left_hand_side(node.targets[0]), node, rhs_visitor.result, line_number=node.lineno, path=""))
 

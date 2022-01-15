@@ -137,29 +137,30 @@ def get_vulnerability(name, source, sink):
 
 def find_vulnerabilities_in_cfg(cfg, vulnerability_definition):
     print("Looking for vulnerability")
+    print("CFG: ", cfg)
 
-    name = vulnerability_definition.vulnerability
-    print("NAME: ", name)
-    sources_definition = vulnerability_definition.sources
-    sinks_definition = vulnerability_definition.sinks
-    assignment_nodes = filter_cfg_nodes(cfg, AssignmentNode)
-    # print("Sources: ", sources_definition)
-    # print("Sinks: ", sinks_definition)
-    sources = find_triggers(assignment_nodes, sources_definition)
-    sinks = find_triggers(cfg.nodes, sinks_definition)
+    # name = vulnerability_definition.vulnerability
+    # print("NAME: ", name)
+    # sources_definition = vulnerability_definition.sources
+    # sinks_definition = vulnerability_definition.sinks
+    # assignment_nodes = filter_cfg_nodes(cfg, AssignmentNode)
+    # # print("Sources: ", sources_definition)
+    # # print("Sinks: ", sinks_definition)
+    # sources = find_triggers(assignment_nodes, sources_definition)
+    # sinks = find_triggers(cfg.nodes, sinks_definition)
 
-    # print("SOurces in the file: ", sources[0])
-    # print("Sinks in the file: ", sinks[1])
-    vulnerabilities = list()
-    for i, source in enumerate(sources):
-        for j, sink in enumerate(sinks):
-            vulnerability_name = name + "_" + (1 + i + j).__str__()
-            vulnerability = get_vulnerability(vulnerability_name, source, sink)
-            # json.dumps(vulnerability.__dict__)
-            vulnerabilities.append(vulnerability)
+    # # print("SOurces in the file: ", sources[0])
+    # # print("Sinks in the file: ", sinks[1])
+    # vulnerabilities = list()
+    # for i, source in enumerate(sources):
+    #     for j, sink in enumerate(sinks):
+    #         vulnerability_name = name + "_" + (1 + i + j).__str__()
+    #         vulnerability = get_vulnerability(vulnerability_name, source, sink)
+    #         # json.dumps(vulnerability.__dict__)
+    #         vulnerabilities.append(vulnerability)
 
-    print("Vulnerabilities: ", vulnerabilities)
-    return vulnerabilities
+    # print("Vulnerabilities: ", vulnerabilities)
+    # return vulnerabilities
 
 
 def find_vulnerabilities(cfg, trigger_word_file=default_trigger_word_file):
@@ -171,6 +172,6 @@ def find_vulnerabilities(cfg, trigger_word_file=default_trigger_word_file):
     for vulnerability_definition in vulnerability_definitions:
         vulnerabilities = find_vulnerabilities_in_cfg(
             cfg, vulnerability_definition)
-        list_of_vulnerabilities.extend(vulnerabilities)
-        print("Definition: ", vulnerability_definition)
-    return list_of_vulnerabilities
+    #     list_of_vulnerabilities.extend(vulnerabilities)
+    #     print("Definition: ", vulnerability_definition)
+    # return list_of_vulnerabilities
