@@ -23,7 +23,7 @@ optional arguments:
 
   -h, --help     show this help message and exit
 
-  --extract      flag to extract slices from zip archive (https://fenix.tecnico.ulisboa.pt/downloadFile/563568428829723/slices.zip)
+  --extract      flag to extract slices from zip archive (see url in file)
 
   --fix_outputs  flag to fix output files by replacing single quotes by double
                  quotes
@@ -34,3 +34,6 @@ To see the proof of concept for visiting the ast as json given as input to the m
 
 To generate a visitor pattern skeleton
 `python3 generate_visitors.py tf_visitor slices/*.py.json --framework`
+
+To see type qualifier or their inference labels run
+`python3 tf_analysis.py`

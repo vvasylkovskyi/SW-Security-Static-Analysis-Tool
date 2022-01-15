@@ -2,6 +2,7 @@ import pprint
 
 from utilities import load_json, greek_letters_lowercase
 from src_visitor import visit_node
+from tf_visitor import visit_node as tf_visit_node
 
 class TypeQualifers:
     TAINTED = "tainted"
@@ -14,10 +15,24 @@ def visit_ast(jast):
     print("\n".join(visited))
     return
 
+# tf_visit_node
+
+def vulnerabilities(ast, patterns):
+    for pattern in patterns:
+        print(pattern)
+        visited = tf_visit_node(ast, **pattern)
+        print("\n".join(visited))
+        print()
+
+    return []
+
 def main():
     from test import get_tests
-    f = get_tests()[0]
-    visit_ast(load_json(f.ast))
+    tests = get_tests()
+    for test in tests:
+        print(test.id, test.name)
+        vulnerabilities(load_json(test.ast), load_json(test.patterns))
+
     return
 
 

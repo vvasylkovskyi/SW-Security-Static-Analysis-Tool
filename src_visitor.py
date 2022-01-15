@@ -43,7 +43,6 @@ def visit_Assign(node, **kwargs):
     value = visit_node(node['value'], **kwargs)
     # r = f"{','.join(targets)}={value}"
     r = f"{kwargs['indentation_level']*INDENTATION}{','.join(targets)}={value}"
-
     return r
 
 

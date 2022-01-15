@@ -2,7 +2,6 @@ from pathlib import Path
 
 from utilities import load_json
 
-
 def get_ast_types(*asts):
     ast_types = set()
     def f(d):
