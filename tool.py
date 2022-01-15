@@ -1,6 +1,7 @@
 import sys
 import json
 from ast_helper.parse_ast import make_ast
+from ast import literal_eval
 from cfg.make_cfg import make_cfg
 from ast_helper.build_ast_tree import build_from_file
 from vulnerabilities import find_vulnerabilities
@@ -39,6 +40,30 @@ def write_output_result(vulnerabilities_string, ast_json_file_path):
         json.dump(vulnerabilities_json, outfile)
 
 
+def is_ascii(s):
+    try:
+        s.decode('ascii')
+        return True
+    except UnicodeDecodeError:
+        return False
+
+
+def print_vulnerabilities_to_json(vulnerabilities, file_path):
+    vulnerabilties_str = '['
+
+    for index, vulnerability in enumerate(vulnerabilities):
+        vulnerabilties_str += json.dumps(vulnerability.__dict__)
+        if(index < len(vulnerabilities) - 1):
+            vulnerabilties_str += ','
+
+    vulnerabilties_str += ']'
+
+    output_file_path = file_path.split(".", 1)[0]
+    output_file_path += '.output.json'
+    with open(output_file_path, 'w') as formatted_file:
+        formatted_file.write(vulnerabilties_str + '\n')
+
+
 def run(file_path, vulnerability_patterns_file_path):
     # print("Analysing")
 
@@ -55,9 +80,10 @@ def run(file_path, vulnerability_patterns_file_path):
 
     FixedPointAnalysis(cfg)
 
-    find_vulnerabilities(cfg, vulnerability_patterns_file_path)
+    vulnerabilities = find_vulnerabilities(
+        cfg, vulnerability_patterns_file_path)
 
-    # print(tree)
+    print_vulnerabilities_to_json(vulnerabilities, file_path)
 
     sys.exit()
 

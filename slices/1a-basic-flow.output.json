@@ -1,0 +1,4 @@
+[
+  { "name": "A_1", "source": "c", "sink": "d", "unsanitized_flows": true },
+  { "name": "A_2", "source": "c", "sink": "d", "unsanitized_flows": true }
+]
