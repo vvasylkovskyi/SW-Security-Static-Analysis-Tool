@@ -10,14 +10,11 @@ class TypeQualifers:
     labels = filter(None, greek_letters_lowercase)
 
 labels = {}
-constraints = set()
 
 def reset_data_structures():
     TypeQualifers.labels = filter(None, greek_letters_lowercase)
-    global labels, constraints
+    global labels
     labels = {}
-    constraints = set()
-
 
 def novisit(node, **kwargs):
     raise NotImplementedError(f"no visitor implemented for {node['ast_type']}")
@@ -72,15 +69,19 @@ def visit_Name(node, **kwargs):
     # alpha node['id']
     # print(kwargs)
     name = node['id']
-    if name in kwargs["sources"]:
-        type_qualifier = TypeQualifers.TAINTED
-    elif name in kwargs["sanitizers"]:
-        type_qualifier = TypeQualifers.UNTAINTED
-    elif name in labels:
+    if name in labels:
         type_qualifier = labels[name]
     else:
-        type_qualifier = next(TypeQualifers.labels)
+        if name in kwargs["sources"]:
+            type_qualifier = TypeQualifers.TAINTED
+        elif name in kwargs["sanitizers"]:
+            type_qualifier = TypeQualifers.UNTAINTED
+        elif name in kwargs["sinks"]:
+            type_qualifier = TypeQualifers.UNTAINTED #sink can be a variable or a function, untainted might refer to the variabl or to the arguments of the function
+        else:
+            type_qualifier = next(TypeQualifers.labels)
         labels[name] = type_qualifier
+
     # print(type_qualifier, name)
     representation = f"{type_qualifier} {name}"
     return representation
@@ -112,10 +113,15 @@ def visit_Call(node, **kwargs):
         }
     :return:
     """
-    args = visit_nodes(node['args'], **kwargs)
-    arguments = ', '.join(f"{TypeQualifers.UNTAINTED if node['func']['id'] in kwargs['sinks'] else TypeQualifers.TAINTED} {arg}" for arg in args )
-    func = visit_node(node['func'], **kwargs)
-    representation = f"{func}({arguments})"
+    func_name = node['func']['id']
+    if func_name in kwargs['sinks']:
+        args_type_qualifier = TypeQualifers.UNTAINTED
+    elif func_name in kwargs['sanitizers']:
+        args_type_qualifier = TypeQualifers.TAINTED
+    else:
+        args_type_qualifier = TypeQualifers.TAINTED
+    arguments = ', '.join(f"{args_type_qualifier} {func_name}_arg{i} {arg}" for i,arg in enumerate(visit_nodes(node['args'], **kwargs)))
+    representation = f"{visit_node(node['func'], **kwargs)}({arguments})"
     return representation
 
 
