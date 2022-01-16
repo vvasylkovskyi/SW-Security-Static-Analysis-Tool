@@ -86,7 +86,8 @@ def run(file_path, vulnerability_patterns_file_path):
 
     if vulnerabilities:
         print_vulnerabilities_to_json(vulnerabilities, file_path)
-
+    else:
+        print("There are no vulnerabilities")
     sys.exit()
 
 

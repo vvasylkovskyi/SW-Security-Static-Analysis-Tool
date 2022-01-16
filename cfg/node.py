@@ -35,15 +35,6 @@ class Node(object):
             self.ingoing.append(n)
             n.outgoing.append(self)
 
-    def connect_control_flow_node(self, control_flow_node, next_node):
-        """Connect a ControlFlowNode properly to the next_node."""
-        for last in control_flow_node[1]:                         # list of last nodes in ifs and elifs
-            if isinstance(next_node, ControlFlowNode):
-                # connect to next if test case
-                last.connect(next_node.test)
-            else:
-                last.connect(next_node)
-
     def __str__(self):
         """Print the label of the node."""
         return ' '.join(('Label: ', self.label))
@@ -84,8 +75,7 @@ ControlFlowNode = namedtuple(
     'ControlFlowNode',
     (
         'test',
-        'last_nodes',
-        'break_statements'
+        'last_nodes'
     )
 )
 

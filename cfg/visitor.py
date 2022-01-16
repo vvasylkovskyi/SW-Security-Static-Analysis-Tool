@@ -55,6 +55,15 @@ class Visitor(ast.NodeVisitor):
         self.nodes.append(node)
         return node
 
+    def connect_control_flow_node(self, control_flow_node, next_node):
+        """Connect a ControlFlowNode properly to the next_node."""
+        for last in control_flow_node[1]:                         # list of last nodes in ifs and elifs
+            if isinstance(next_node, ControlFlowNode):
+                # connect to next if test case
+                last.connect(next_node.test)
+            else:
+                last.connect(next_node)
+
     def should_connect_node(self, node):
         if isinstance(node, IgnoredNode):
             return False
@@ -92,6 +101,14 @@ class Visitor(ast.NodeVisitor):
                 n.connect(next_node[0])
             else:
                 n.connect(next_node)
+
+    def add_if_label(self, CFG_node):
+        """Prepend 'if ' and append ':' to the label of a Node."""
+        CFG_node.label = 'if ' + CFG_node.label + ':'
+
+    def add_elif_label(self, CFG_node):
+        """Add the el to an already add_if_label'ed Node."""
+        CFG_node.label = 'el' + CFG_node.label
 
     def handle_initialize_statements(self, statements):
         cfg_statements = list()
@@ -155,6 +172,17 @@ class Visitor(ast.NodeVisitor):
 
         return left_hand_side
 
+    def handle_or_else(self, orelse, test):
+        if isinstance(orelse[0], ast.If):
+            control_flow_node = self.visit(orelse[0])
+            self.add_elif_label(control_flow_node.test)
+            test.connect(control_flow_node.test)
+            return control_flow_node.last_nodes
+        else:
+            else_connect_statements = self.handle_initialize_statements(orelse)
+            test.connect(else_connect_statements.first_statement)
+            return else_connect_statements.last_statements
+
     def visit_Call(self, node):
         print("Visit Call")
         label_visitor = LabelVisitor()
@@ -191,3 +219,22 @@ class Visitor(ast.NodeVisitor):
     def visit_Expr(self, node):
         print("Visit expr:", node.value)
         return self.visit(node.value)
+
+    def visit_If(self, node):
+        print("Node TEST: ", node.test)
+        label_visitor = LabelVisitor()
+        label_visitor.visit(node.test)
+        test = self.append_node(
+            Node(label_visitor.result, node, line_number=node.lineno, path=""))
+        self.add_if_label(test)
+        body_connect_statements = self.handle_initialize_statements(node.body)
+        test.connect(body_connect_statements.first_statement)
+
+        if node.orelse:
+            print("IS HERE")
+            oresle_last_nodes = self.handle_or_else(node.orelse, test)
+            body_connect_statements.last_statements.extend(oresle_last_nodes)
+        else:
+            body_connect_statements.last_statements.append(test)
+        last_statements = body_connect_statements.last_statements
+        return ControlFlowNode(test, last_statements)

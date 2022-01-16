@@ -111,6 +111,11 @@ def get_sink_args(cfg_node):
 
 
 def get_vulnerability(name, source, sink):
+    print("Source: ", source)
+    print("Sink: ", sink)
+    print("Source CFG: ", source.cfg_node)
+    print("Sink CFG: ", sink.cfg_node)
+    print("Sink constraints: ", sink.cfg_node.new_constraint)
     source_in_sink = source.cfg_node in sink.cfg_node.new_constraint
     if source_in_sink:
         return Vulnerability(name, source.trigger_word, sink.trigger_word)
@@ -125,8 +130,11 @@ def filter_out_entry_and_exit_nodes(nodes):
 
 
 def find_vulnerability_for_pair(name, source_def, sink_def, sources_in_nodes, sinks_in_nodes):
+    print("SINKS IN NODES: ", sinks_in_nodes)
+    print("SOURCES IN NODES: ", sources_in_nodes)
     for i, source in enumerate(sources_in_nodes):
         for j, sink in enumerate(sinks_in_nodes):
+            print("HERE")
             vulnerability_name = name + "_" + (1 + i + j).__str__()
             vulnerability = get_vulnerability(vulnerability_name, source, sink)
             if vulnerability is not None:
@@ -140,7 +148,7 @@ def find_vulnerabilities_in_cfg(cfg, vulnerability_definition):
     sources_definition = vulnerability_definition.sources
     sinks_definition = vulnerability_definition.sinks
     assignment_nodes = filter_cfg_nodes(nodes, AssignmentNode)
-    sources_in_nodes = find_triggers(assignment_nodes, sources_definition)
+    sources_in_nodes = find_triggers(nodes, sources_definition)
     sinks_in_nodes = find_triggers(nodes, sinks_definition)
     vulnerabilities = list()
 
