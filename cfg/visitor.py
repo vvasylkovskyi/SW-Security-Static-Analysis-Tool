@@ -12,6 +12,7 @@ class Visitor(ast.NodeVisitor):
         super().__init__()
         """Create an empty CFG."""
         self.nodes = list()
+        self.undecided = False
         self.init_cfg(tree)
 
     # def visit_Module(self, node):
@@ -31,16 +32,20 @@ class Visitor(ast.NodeVisitor):
         # print("Self nodes: ", self.nodes)
         statements = self.handle_initialize_statements(tree.body)
 
-        print("THE END STATEMENTS")
+        # print("THE END STATEMENTS")
         first_node = statements.first_statement
 
         entry_node.connect(first_node)
-        print("First! ", first_node)
+        # print("First! ", first_node)
         exit_node = self.append_node(EntryExitNode("Exit node"))
 
         last_nodes = statements.last_statements
+        # print("Last Nodes: ", last_nodes)
         exit_node.connect_predecessors(last_nodes)
-        print("Last! ", last_nodes)
+        # print("Last! ", last_nodes)
+        # print("-----NODES -----")
+        # print(self.nodes)
+        # print("----------------")
 
         # visit_result = self.visit(tree)
         # print(visit_result)
@@ -78,6 +83,16 @@ class Visitor(ast.NodeVisitor):
         else:
             return [cfg_statements[-1]]
 
+    def connect_nodes(self, nodes):
+        """Connect the nodes in a list linearly."""
+        for n, next_node in zip(nodes, nodes[1:]):
+            if isinstance(n, ControlFlowNode):             # case for if
+                self.connect_control_flow_node(n, next_node)
+            elif isinstance(next_node, ControlFlowNode):  # case for if
+                n.connect(next_node[0])
+            else:
+                n.connect(next_node)
+
     def handle_initialize_statements(self, statements):
         cfg_statements = list()
         break_nodes = list()
@@ -91,7 +106,7 @@ class Visitor(ast.NodeVisitor):
                 cfg_statements.append(node)
 
         print("Final cfg statements: ", cfg_statements)
-        # self.connect_nodes(cfg_statements)
+        self.connect_nodes(cfg_statements)
         if cfg_statements:  # When body of module only contains ignored nodes
             first_statement = self.get_first_statement(cfg_statements[0])
             last_statements = self.get_last_statements(cfg_statements)
@@ -100,7 +115,7 @@ class Visitor(ast.NodeVisitor):
     def assignment_call_node(self, left_hand_label, ast_node):
         # print("HERE")
         """Handle assignments that contain a function call on its right side."""
-        # self.undecided = True # Used for handling functions in assignments
+        self.undecided = True  # Used for handling functions in assignments
         rhs_visitor = RightHandSideVisitor()
         rhs_visitor.visit(ast_node.value)
         # print("VALUE: ", ast_node.value)
@@ -144,8 +159,15 @@ class Visitor(ast.NodeVisitor):
         print("Visit Call")
         label_visitor = LabelVisitor()
         label_visitor.visit(node)
-        return Node(label_visitor.result, node,
-                    line_number=node.lineno, path="")
+        # if
+        print("label: ", label_visitor.result)
+        func_call_node = Node(label_visitor.result, node,
+                              line_number=node.lineno, path="")
+        if not self.undecided:
+            self.nodes.append(func_call_node)
+        self.undecided = False
+
+        return func_call_node
 
     def visit_Assign(self, node):
         print("Visit Assign")

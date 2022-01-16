@@ -9,6 +9,7 @@ class FixedPointAnalysis():
         analysis must be a dataflow analysis containing a 'fixpointmethod' method that analyzes one CFG node"""
         self.analysis = ReachingDefinitionsAnalysis()
         self.cfg = cfg
+        # print("HERE")
         self.fixpoint_runner()
 
     def constraints_changed(self):
@@ -18,6 +19,9 @@ class FixedPointAnalysis():
     def swap_constraints(self):
         """Set odl constraint to new constraint and set new constraint to None."""
         for node in self.cfg.nodes:
+            # print("Swap constraints: ", node)
+            # print("Old Constraints: ", node.old_constraint)
+            # print("New Constraints: ", node.new_constraint)
             node.old_constraint = node.new_constraint
             node.new_constraint = None
 
@@ -25,6 +29,7 @@ class FixedPointAnalysis():
         """Runs the fixpoint algorithm."""
         self.fixpoint_iteration()
         while self.constraints_changed():
+            print("Iteration")
             self.swap_constraints()
             self.fixpoint_iteration()
 

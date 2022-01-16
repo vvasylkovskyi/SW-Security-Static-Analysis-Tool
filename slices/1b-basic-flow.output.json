@@ -1,0 +1,8 @@
+[
+  { "name": "A_1", "source": "b", "sink": "d", "unsanitized_flows": true },
+  { "name": "A_2", "source": "b", "sink": "d", "unsanitized_flows": true },
+  { "name": "A_2", "source": "c", "sink": "d", "unsanitized_flows": true },
+  { "name": "A_3", "source": "c", "sink": "d", "unsanitized_flows": true },
+  { "name": "A_3", "source": "c", "sink": "d", "unsanitized_flows": true },
+  { "name": "A_4", "source": "c", "sink": "d", "unsanitized_flows": true }
+]
