@@ -9,10 +9,15 @@ class TypeQualifers:
     UNTAINTED = "untainted"
     labels = filter(None, greek_letters_lowercase)
 
-def renew_labels():
-    TypeQualifers.labels = filter(None, greek_letters_lowercase)
-
 labels = {}
+constraints = set()
+
+def reset_data_structures():
+    TypeQualifers.labels = filter(None, greek_letters_lowercase)
+    global labels, constraints
+    labels = {}
+    constraints = set()
+
 
 def novisit(node, **kwargs):
     raise NotImplementedError(f"no visitor implemented for {node['ast_type']}")
@@ -36,7 +41,7 @@ def visit_Module(node, **kwargs):
     :return:
     """
     # print(kwargs)
-    renew_labels()
+    reset_data_structures()
     return visit_nodes(node['body'], indentation_level=0, **kwargs)
 
 
@@ -76,7 +81,7 @@ def visit_Name(node, **kwargs):
     else:
         type_qualifier = next(TypeQualifers.labels)
         labels[name] = type_qualifier
-
+    # print(type_qualifier, name)
     representation = f"{type_qualifier} {name}"
     return representation
 
