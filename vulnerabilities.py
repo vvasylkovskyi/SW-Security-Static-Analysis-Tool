@@ -43,9 +43,7 @@ def parse(trigger_word_file=default_trigger_word_file):
 
     list_of_vulnerability_patterns = json.loads(file_contents_in_string)
     vulnerability_definitions = list()
-    # print("JSON: ", list_of_vulnerability_patterns)
     for vulnerability_pattern in list_of_vulnerability_patterns:
-        # print("Vulnerabilty: ", vulnerability_pattern)
         sources = list()
         sinks = list()
         vulnerability = vulnerability_pattern[VULNERABILITY_NAME_KEYWORD]
@@ -68,27 +66,19 @@ def source_node_contains_label(node, sources):
             return TriggerNode(trigger_word, node)
 
 
-def get_trigger_node_that_contains_label(node, triggers):
-    for trigger in triggers:
-        # print("TRIGGERRRERE: ", trigger)
-        # print("Node Label: ", node.label)
-        # print("Trigger: ", trigger)
-        # print("Node label: ", node.label)
-        if trigger in node.label:
-            # print("TRIGGER WORD: ", trigger)
-            return TriggerNode(trigger, node)
+def get_trigger_node_that_contains_label(node, trigger):
+    if trigger in node.label:
+        return TriggerNode(trigger, node)
 
 
 def find_triggers(nodes, triggers):
     trigger_nodes = list()
-    for node in nodes:
-        # print("Node: ", node)
-        trigger_that_contains_label = get_trigger_node_that_contains_label(
-            node, triggers)
-        # print("Trigger that contains label: ", trigger_that_contains_label)
-        if trigger_that_contains_label is not None:
-            # print("Is not None: ", trigger_that_contains_label)
-            trigger_nodes.append(trigger_that_contains_label)
+    for trigger in triggers:
+        for node in nodes:
+            trigger_that_contains_label = get_trigger_node_that_contains_label(
+                node, trigger)
+            if trigger_that_contains_label is not None:
+                trigger_nodes.append(trigger_that_contains_label)
     return trigger_nodes
 
 
@@ -121,27 +111,7 @@ def get_sink_args(cfg_node):
 
 
 def get_vulnerability(name, source, sink):
-    print("Getting vulnerability based on:\n")
     source_in_sink = source.cfg_node in sink.cfg_node.new_constraint
-    # print("Source: ", source)
-    # print("Sink: ", sink)
-    # print("source CFG: ", source.cfg_node.label)
-    print("Source cfg: ",
-          source.cfg_node)
-    # source_in_sink = source.cfg_node in sink.cfg_node.new_constraint
-    # lhs_in_sink_args
-    print("Sink: ", sink.cfg_node)
-    print("Sink New constraint: ", sink.cfg_node.new_constraint)
-
-    # TODO
-    # Figure out if there is a vulnerability based on constraints
-
-    source_in_sink = source.cfg_node in sink.cfg_node.new_constraint
-
-    # sink_args = get_sink_args(sink.cfg_node)
-    # source_lhs_in_sink_args = source.cfg_node.left_hand_side in sink_args if sink_args else None
-
-    print("Source in sink?: ", source_in_sink)
     if source_in_sink:
         return Vulnerability(name, source.trigger_word, sink.trigger_word)
 
@@ -154,28 +124,31 @@ def filter_out_entry_and_exit_nodes(nodes):
     return filtered_list
 
 
-def find_vulnerabilities_in_cfg(cfg, vulnerability_definition):
-    # print("Looking for vulnerability")
+def find_vulnerability_for_pair(name, source_def, sink_def, sources_in_nodes, sinks_in_nodes):
+    for i, source in enumerate(sources_in_nodes):
+        for j, sink in enumerate(sinks_in_nodes):
+            vulnerability_name = name + "_" + (1 + i + j).__str__()
+            vulnerability = get_vulnerability(vulnerability_name, source, sink)
+            if vulnerability is not None:
+                return Vulnerability(name, source_def, sink_def)
+    return None
 
+
+def find_vulnerabilities_in_cfg(cfg, vulnerability_definition):
     name = vulnerability_definition.vulnerability
-    # print("NAME: ", name)
     nodes = filter_out_entry_and_exit_nodes(cfg.nodes)
     sources_definition = vulnerability_definition.sources
     sinks_definition = vulnerability_definition.sinks
     assignment_nodes = filter_cfg_nodes(nodes, AssignmentNode)
-    sources = find_triggers(assignment_nodes, sources_definition)
-    sinks = find_triggers(nodes, sinks_definition)
-    print("Sinks def: ", sinks_definition)
-    # print("Sources: ", sources)
-    # print("Sinks: ", sinks)
+    sources_in_nodes = find_triggers(assignment_nodes, sources_definition)
+    sinks_in_nodes = find_triggers(nodes, sinks_definition)
     vulnerabilities = list()
-    print("SOURCES: ", sources)
-    for i, source in enumerate(sources):
-        for j, sink in enumerate(sinks):
-            print("i: ", i)
-            print("j: ", j)
+
+    for i, source_def in enumerate(sources_definition):
+        for j, sink_def in enumerate(sinks_definition):
             vulnerability_name = name + "_" + (1 + i + j).__str__()
-            vulnerability = get_vulnerability(vulnerability_name, source, sink)
+            vulnerability = find_vulnerability_for_pair(
+                vulnerability_name, source_def, sink_def, sources_in_nodes, sinks_in_nodes)
             if vulnerability is not None:
                 vulnerabilities.append(vulnerability)
 
@@ -188,7 +161,6 @@ def find_vulnerabilities(cfg, trigger_word_file=default_trigger_word_file):
     for vulnerability_definition in vulnerability_definitions:
         vulnerabilities = find_vulnerabilities_in_cfg(
             cfg, vulnerability_definition)
-        # print("Vulnerabilities: ", vulnerabilities)
         if vulnerabilities:
             list_of_vulnerabilities.extend(vulnerabilities)
     return list_of_vulnerabilities
