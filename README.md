@@ -4,36 +4,20 @@ A tool for static (tainted flows?) analysis of software vulnerability
 
 `python3 tf_analyser.py -h`
 
-positional arguments:
+Start by extracting the archive provided by the teachers
 
-  program     path of a JSON file containing the program slice to analyse,
-              represented in the form of an Abstract Syntax Tree
-
-  patterns    path of a JSON file containing the list of vulnerability
-              patterns to consider
-
-optional arguments:
-  -h, --help  show this help message and exit
-
-`python3 test.py -h`
-
-usage: test.py [-h] [--extract] [--fix_outputs]
-
-optional arguments:
-
-  -h, --help     show this help message and exit
-
-  --extract      flag to extract slices from zip archive (see url in file)
-
-  --fix_outputs  flag to fix output files by replacing single quotes by double
-                 quotes
-
-To see the proof of concept for visiting the ast as json given as input to the main tool run
-`python3 test.py --test_visitor`
+`python3 test.py --extract`
 
 
 To generate a visitor pattern skeleton
+
 `python3 generate_visitors.py tf_visitor slices/*.py.json --framework`
 
-To see type qualifier or their inference labels run
-`python3 tf_analysis.py`
+
+To check current state of development of the solution
+
+`python3 test.py | less`
+
+Note that the representation of the constraint is a string but the constraint itself is a tuple of 5 elements consisting of a line number and two pairs of type qualifiers and ids
+
+

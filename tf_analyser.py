@@ -1,31 +1,59 @@
 """
-Segurança de Software - Instituto Superior Técnico / Universidade Lisboa
-Software Vulnerabilities Static Analysis tool: TODO rewrite given a program, the tool reveals potential vulnerabilties.
+Segurança de Software - Instituto Superior Técnico / Universidade de Lisboa
+MEIC-A 2021/2022 Periodo 2
+Software Vulnerabilities Static Analysis tool:
 
-Analyse python ast tree to check if there any vulnerabilities.
+given a program, a tainted flow analysis
+based on the series of lectures https://www.coursera.org/learn/software-security/lecture/c4Dw1/flow-analysis
+is performed
 
 Usage:
-$ python tf_analyser.py analyse <input_ast_json_file_path> <vulnerabilities_file_path>
+$ python tf_analyser.py <ast> <vulnerabilities>
 """
 
-# import ast
-import pprint
+from pathlib import Path
+from pprint import pprint
+
 from utilities import load_json
+from tf_analysis import visit_with_pattern
+from src_visitor import visit_node as src_visit_node
+from tf_visitor import visit_node as tf_visit_node
+from constraints_visitor import visit_node as constraints_visit_node
+
 
 def make_vulnerability(vulnerability, source, sink, unsanitized_flows="yes", sanitized_flows=[]):
     return {"vulnerability": vulnerability, "source": source, "sink": sink, "unsanitized flows": unsanitized_flows, "sanitized flows": sanitized_flows}
 
 
-def main(ast, patterns):
-    print(ast, patterns)
-
-    patterns = load_json(patterns)
-    print(patterns)
+def main_experimental(ast, patterns):
+    # print(ast, patterns)
     ast = load_json(ast)
-    pprint.pprint(ast)
-    analysis = []
+    print()
+    print("SOURCE:")
+    src = src_visit_node(ast)
+    print("\n".join(src))
+    patterns = load_json(patterns)
+    # print(patterns)
+    for pattern in patterns:
+        print()
+        print("PATTERN:")
+        print(pattern)
+        src = tf_visit_node(ast, **pattern)
+        print()
+        print("SRC WITH TYPE QUALIFIERS:")
+        print("\n".join(src))
+        constraints = list()
+        visit_with_pattern(ast, pattern, constraints_visit_node, constraints=constraints, labels_map=dict(), **pattern)
+        # pprint(constraints, width=10)
+        print()
+        print("CONSTRAINTS:")
+        print("\n".join(map(repr, sorted(set(constraints)))))
+        # print(f"please solve constraints to detect illegal flows")
+        # print()
 
-    return analysis
+def main(ast, patterns):
+    main_experimental(ast, patterns)
+
 
 if __name__ == "__main__":
     import argparse
@@ -37,4 +65,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    main(args.program, args.patterns)
+    main(Path(args.program), Path(args.patterns))

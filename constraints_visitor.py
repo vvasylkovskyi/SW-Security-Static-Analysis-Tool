@@ -1,20 +1,18 @@
-
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from utilities import greek_letters_lowercase
 
+"""
+x = y -> q_y <= q_x
+do not taint x with y
+"""
+Constraint = namedtuple("Constraint", ("line", "lhs_tq", "lhs_id", "rhs_tq", "rhs_id"))
+Constraint.__repr__ = lambda s:f"{s.line:>2}: {s.lhs_tq} <= {s.rhs_tq}"
 
-INDENTATION = "    "
 class TypeQualifers:
     TAINTED = "tainted"
     UNTAINTED = "untainted"
-    labels = filter(None, greek_letters_lowercase)
+    labels = greek_letters_lowercase
 
-labels = {}
-
-def reset_data_structures():
-    TypeQualifers.labels = filter(None, greek_letters_lowercase)
-    global labels
-    labels = {}
 
 def novisit(node, **kwargs):
     raise NotImplementedError(f"no visitor implemented for {node['ast_type']}")
@@ -22,6 +20,7 @@ def novisit(node, **kwargs):
 
 def visit_node(node, **kwargs):
     # print(node);print()
+    # print(kwargs["constraints"])
     return ast_type_visitors[node['ast_type']](node, **kwargs)
 
 
@@ -38,8 +37,8 @@ def visit_Module(node, **kwargs):
     :return:
     """
     # print(kwargs)
-    reset_data_structures()
-    return visit_nodes(node['body'], indentation_level=0, **kwargs)
+    kwargs.update(dict(indentation_level=0, labels=filter(None, greek_letters_lowercase)))
+    visit_nodes(node['body'], **kwargs)
 
 
 def visit_Assign(node, **kwargs):
@@ -47,12 +46,13 @@ def visit_Assign(node, **kwargs):
     :param node:
     :return:
     """
-
-    targets = visit_nodes(node['targets'], **kwargs)
+    target_type_qualifier, target_id = visit_nodes(node['targets'], **kwargs)[0] #assume1
+    kwargs["assignment_context"] = (target_type_qualifier, target_id) #for binops
     value = visit_node(node['value'], **kwargs)
-    # r = f"{','.join(targets)}={value}"
-    r = f"{node['lineno']:>2}: {kwargs['indentation_level'] * INDENTATION}{','.join(targets)} = {value}"
-    return r
+    del kwargs["assignment_context"]
+    # if value:
+    #     value_type_qualifier, value_id = value
+    #     kwargs["constraints"].append(Constraint(node["lineno"], value_type_qualifier, value_id, target_type_qualifier, target_id))
 
 
 def visit_Name(node, **kwargs):
@@ -69,22 +69,24 @@ def visit_Name(node, **kwargs):
     # alpha node['id']
     # print(kwargs)
     name = node['id']
-    if name in labels:
-        type_qualifier = labels[name]
+    if name in kwargs["labels_map"]:
+        type_qualifier = kwargs["labels_map"][name]
     else:
         if name in kwargs["sources"]:
             type_qualifier = TypeQualifers.TAINTED
         elif name in kwargs["sanitizers"]:
             type_qualifier = TypeQualifers.UNTAINTED
         elif name in kwargs["sinks"]:
-            type_qualifier = TypeQualifers.UNTAINTED #sink can be a variable or a function, untainted might refer to the variabl or to the arguments of the function
+            type_qualifier = TypeQualifers.UNTAINTED  # sink can be a variable or a function, untainted might refer to the variabl or to the arguments of the function
         else:
-            type_qualifier = next(TypeQualifers.labels)
-        labels[name] = type_qualifier
+            type_qualifier = next(kwargs["labels"])
+        kwargs["labels_map"][name] = type_qualifier
+
+    if "assignment_context" in kwargs:
+        kwargs["constraints"].append(Constraint(node["lineno"], type_qualifier, name, *kwargs["assignment_context"]))
 
     # print(type_qualifier, name)
-    representation = f"{type_qualifier} {name}"
-    return representation
+    return type_qualifier, name
 
 
 def visit_Str(node, **kwargs):
@@ -92,7 +94,12 @@ def visit_Str(node, **kwargs):
     :param node: {'ast_type': 'Str', 'col_offset': 2, 'lineno': 1, 's': ''}
     :return:
     """
-    return f"{TypeQualifers.UNTAINTED} {repr(node['s'])}"
+    kwargs["labels_map"][node['s']] = TypeQualifers.UNTAINTED
+
+    if "assignment_context" in kwargs:
+        kwargs["constraints"].append(Constraint(node["lineno"], TypeQualifers.UNTAINTED, node["s"], *kwargs["assignment_context"]))
+
+    return TypeQualifers.UNTAINTED, node['s']
 
 
 def visit_Call(node, **kwargs):
@@ -104,7 +111,7 @@ def visit_Call(node, **kwargs):
          'func': {'ast_type': 'Name',
                   'col_offset': 2,
                   'ctx': {'ast_type': 'Load'},
-                  'id': 'c',
+                  'id': 'c',w
                   'lineno': 2},
          'keywords': [],
          'kwargs': None,
@@ -113,26 +120,24 @@ def visit_Call(node, **kwargs):
         }
     :return:
     """
-    func_name = node['func']['id']
-    if func_name in kwargs['sinks']:
-        args_type_qualifier = TypeQualifers.UNTAINTED
-    elif func_name in kwargs['sanitizers']:
-        args_type_qualifier = TypeQualifers.TAINTED
-    else:
-        args_type_qualifier = TypeQualifers.TAINTED
-    arguments = ', '.join(f"{args_type_qualifier} {func_name}_arg{i} {arg}" for i,arg in enumerate(visit_nodes(node['args'], **kwargs)))
-    representation = f"{visit_node(node['func'], **kwargs)}({arguments})"
-    return representation
+    func_tq, func_id = visit_node(node['func'], **kwargs)
+    arg_type_qualifier = TypeQualifers.UNTAINTED if func_id in kwargs['sinks'] else TypeQualifers.TAINTED
+    argc = len(node['args'])
+    for i in range(argc):
+        kwargs["assignment_context"]=(arg_type_qualifier, f"{func_id}_arg{i}")
+        visit_node(node['args'][i], **kwargs) #to work for an argument which is a BinOp
+        del kwargs["assignment_context"]
+    # for i,(arg_tq, arg_name) in enumerate(args):
+    #     kwargs["constraints"].append(Constraint(node['lineno'], arg_tq, arg_name, arg_type_qualifier, f"{func_id}_arg{i}"))
 
+    return func_tq, func_id
 
 def visit_Expr(node, **kwargs):
     """
     :param node:
     :return:
     """
-
-    value = visit_node(node['value'], **kwargs)
-    return f"{node['lineno']:>2}: {kwargs['indentation_level'] * INDENTATION}{value}"
+    visit_node(node['value'], **kwargs)
 
 
 def visit_BinOp(node, **kwargs):
@@ -140,12 +145,17 @@ def visit_BinOp(node, **kwargs):
     :param node:
     :return:
     """
+    #TODO what is needed here?
     left = visit_node(node['left'], **kwargs)
     right = visit_node(node['right'], **kwargs)
-    op = visit_node(node['op'], **kwargs)
-    representation = f"{left} {op} {right}"
-    return representation
+    # if "assignment_context" in kwargs:
+    #     if left: #recursive binops
+    #         kwargs["constraints"].append(Constraint(node["lineno"], *left, *kwargs["assignment_context"]))
+    #     kwargs["constraints"].append(Constraint(node["lineno"], *right, *kwargs["assignment_context"]))
 
+    # print("left", left)
+    # print("right", right)
+    # return
 
 def visit_Compare(node, **kwargs):
     """
@@ -155,8 +165,6 @@ def visit_Compare(node, **kwargs):
     left = visit_node(node['left'], **kwargs)
     comparators = visit_nodes(node['comparators'], **kwargs)
     ops = visit_nodes(node['ops'], **kwargs)
-    representation = f"{left} {', '.join(ops)} {','.join(comparators)}"
-    return representation
 
 
 def visit_If(node, **kwargs):
@@ -164,25 +172,10 @@ def visit_If(node, **kwargs):
     :param node:
     :return:
     """
-
-    test = visit_node(node['test'], **kwargs)
-
-    indentation_level = kwargs['indentation_level']
-    indentation = indentation_level * INDENTATION
-
-    representation = f"{node['lineno']:>2}: {indentation}if({test}):\n"
-
-    kwargs['indentation_level'] += 1
+    # test = visit_node(node['test'], **kwargs)
     body = visit_nodes(node['body'], **kwargs)
-    representation += "\n".join(body)
-
     orelse = visit_nodes(node['orelse'], **kwargs)
 
-    if orelse:#{node["lineno"]:>2}
-        representation += f"\n{node['lineno']+len(orelse):>2}: {indentation}else:\n"
-        representation += "\n".join(orelse)
-
-    return representation
 
 
 def visit_While(node, **kwargs):
@@ -190,17 +183,8 @@ def visit_While(node, **kwargs):
     :param node:
     :return:
     """
-    indentation_level = kwargs['indentation_level']
-    indentation = indentation_level * INDENTATION
-
-    test = visit_node(node['test'], **kwargs)
-    kwargs['indentation_level'] += 1
+    # test = visit_node(node['test'], **kwargs)
     body = visit_nodes(node['body'], **kwargs)
-
-    representation = f"{node['lineno']:>2}: {indentation}while ({test}):\n"
-    representation += "\n".join(body)
-
-    return representation
 
 
 def visit_Break(node, **kwargs):
@@ -208,7 +192,7 @@ def visit_Break(node, **kwargs):
     :param node:
     :return:
     """
-    return f"{node['lineno']:>2}: {kwargs['indentation_level'] * INDENTATION}break"
+    return
 
 
 def visit_Add(node, **kwargs):
@@ -216,7 +200,7 @@ def visit_Add(node, **kwargs):
     :param node:
     :return:
     """
-    return '+'
+    return
 
 
 def visit_Num(node, **kwargs):
@@ -224,7 +208,7 @@ def visit_Num(node, **kwargs):
     :param node:
     :return:
     """
-    return visit_node(node['n'], **kwargs)
+    return visit_node(node['n'], lineno=node['lineno'], **kwargs)
 
 
 def visit_NotEq(node, **kwargs):
@@ -232,7 +216,7 @@ def visit_NotEq(node, **kwargs):
     :param node:
     :return:
     """
-    return "!="
+    return
 
 
 def visit_Eq(node, **kwargs):
@@ -240,7 +224,7 @@ def visit_Eq(node, **kwargs):
     :param node:
     :return:
     """
-    return "=="
+    return
 
 
 def visit_int(node, **kwargs):
@@ -248,8 +232,12 @@ def visit_int(node, **kwargs):
     :param node:
     :return:
     """
-    key = "n_str"
-    return f"{TypeQualifers.UNTAINTED} {node[key]}"
+    kwargs["labels_map"][node['n_str']] = TypeQualifers.UNTAINTED
+
+    if "assignment_context" in kwargs:
+        kwargs["constraints"].append(Constraint(kwargs["lineno"], TypeQualifers.UNTAINTED, node["n_str"], *kwargs["assignment_context"]))
+
+    return TypeQualifers.UNTAINTED, node["n_str"]
 
 
 def visit_Gt(node, **kwargs):
@@ -257,7 +245,7 @@ def visit_Gt(node, **kwargs):
     :param node:
     :return:
     """
-    return ">"
+    return
 
 
 def visit_Lt(node, **kwargs):
@@ -265,8 +253,7 @@ def visit_Lt(node, **kwargs):
     :param node:
     :return:
     """
-    return "<"
-
+    return
 
 def visit_Load(node, **kwargs):
     """

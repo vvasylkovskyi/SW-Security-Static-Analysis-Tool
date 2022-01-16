@@ -7,7 +7,6 @@ from zipfile import ZipFile
 import shutil
 
 import tf_analyser
-from tf_analysis import visit_ast
 from utilities import load_json, dump_json
 
 
@@ -45,13 +44,6 @@ def extract():
 def get_tests():
     return tuple(map(Test, slices.glob("*.py")))
 
-def test_visitor():
-    tests = get_tests()
-    for t in tests:
-        print(t)
-        visit_ast(load_json(t.ast))
-    return
-
 def pprint_asts():
     asts = Path("asts")
     if not asts.exists(): asts.mkdir()
@@ -59,17 +51,18 @@ def pprint_asts():
         dump_json(asts/p.name, load_json(p), indent=4)
     return
 
-
 def main():
     if not slices.exists():
         extract()
     tests = get_tests()
-    tests = tests[:1]
+    # tests = tests[:1]
     for t in tests:
+        print()
         print(t)
         analysis = tf_analyser.main(t.ast, t.patterns)
-        output = load_json(t.output)
-        assert analysis==output, f"{analysis} != {output}"
+        print()
+        # output = load_json(t.output)
+        # assert analysis==output, f"{analysis} != {output}"
     return
 
 
@@ -77,7 +70,6 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--extract", action='store_true', help=f"flag to extract slices from zip archive ({slices_url})") #action=argparse.BooleanOptionalAction 3.10
-    parser.add_argument("--test_visitor", action='store_true', help="test a visitor defined below")
     parser.add_argument("--pprint_asts", action='store_true', help="pretty print abstract syntax trees")
 
     args = parser.parse_args()
@@ -85,7 +77,5 @@ if __name__ == '__main__':
         extract()
     elif args.pprint_asts:
         pprint_asts()
-    elif args.test_visitor:
-        test_visitor()
     else:
         main()
