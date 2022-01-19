@@ -1,7 +1,6 @@
 import pprint
 
 from utilities import load_json
-from tf_visitor import visit_node as tf_visit_node
 from constraints_visitor import visit_node as constraints_visit_node
 
 

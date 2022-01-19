@@ -57,7 +57,6 @@ class SrcVisitor(visitors.Visitor):
     def visit_Break(self, node):
         return f"{self.indentation_level * SrcVisitor.INDENTATION}{super(SrcVisitor, self).visit_Break(node)}"
 
-
     def visit_Continue(self, node):
         return f"{self.indentation_level * SrcVisitor.INDENTATION}{super(SrcVisitor, self).visit_Continue(node)}"
 

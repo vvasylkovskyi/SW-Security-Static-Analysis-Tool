@@ -1,330 +1,207 @@
-
 from collections import defaultdict
-from utilities import greek_letters_lowercase
 from enum import Enum
 
-INDENTATION = "    "
+from visitors import Visitor
+from utilities import greek_letters_lowercase
+
 class TypeQualifers:
     TAINTED = "tainted"
     UNTAINTED = "untainted"
-    labels = filter(None, greek_letters_lowercase)
 
 class AssignmentContext(Enum):
     NONE = 0
     TARGET = 1
-    VALUE = 2
+    VALUE_VARIABLE = 2
+    VALUE_FUNCTION = 3
+    VALUE_FUNCTION_ARGUMENT = 4
 
 
-labels = {}
+class TaintedFlowVisitor(Visitor):
 
-def reset_data_structures():
-    TypeQualifers.labels = filter(None, greek_letters_lowercase)
-    global labels
-    labels = {}
+    def __init__(self, ast, **kwargs):
+        super(TaintedFlowVisitor, self).__init__(ast)
+        self.super = super(TaintedFlowVisitor, self)
+        self.indentation_level=0
+        self._labels = filter(None, greek_letters_lowercase)
+        self._labels_map = dict()
 
-def novisit(node, **kwargs):
-    raise NotImplementedError(f"no visitor implemented for {node['ast_type']}")
+        self._variable_ssa_map = defaultdict(list)
+        self._variable_ssa_inverse_map = dict()
 
+        self.assignment_context = AssignmentContext.NONE
+        self.sources = kwargs['sources']
+        self.original_sources = self.sources.copy()
 
-def visit_node(node, **kwargs):
-    # print(node);print()
-    return ast_type_visitors[node['ast_type']](node, **kwargs)
-
-
-def visit_nodes(nodes, **kwargs):
-    return tuple(ast_type_visitors[e['ast_type']](e, **kwargs) for e in nodes)
-
-
-def visit_Module(node, **kwargs):
-    """
-    :param node: {
-        'ast_type': 'Module',
-        'body': [...]
-    }
-    :return:
-    """
-    # print(kwargs)
-    reset_data_structures()
-    return visit_nodes(node['body'], indentation_level=0, assignment_context=AssignmentContext.NONE, **kwargs)
+        self.sinks = kwargs['sinks']
+        self.sanitizers = kwargs['sanitizers']
 
 
-def visit_Assign(node, **kwargs):
-    """
-    :param node:
-    :return:
-    """
+    def next_label(self):
+        return next(self._labels)
 
-    kwargs["assignment_context"] = AssignmentContext.TARGET
-    targets = visit_nodes(node['targets'], **kwargs)
-    kwargs["assignment_context"] = AssignmentContext.VALUE
-    value = visit_node(node['value'], **kwargs)
-    kwargs["assignment_context"] = AssignmentContext.NONE
+    def make_ssa_variable_name(self, name):
+        ssa_name = f"{name}_{len(self._variable_ssa_map[name])}"
+        self._variable_ssa_map[name].append(ssa_name)
+        self._variable_ssa_inverse_map[ssa_name] = name
+        return ssa_name
 
-    # r = f"{','.join(targets)}={value}"
-    r = f"{node['lineno']:>2}: {kwargs['indentation_level'] * INDENTATION}{','.join(targets)} = {value}"
-    return r
+    def visit_Module(self, node):
+        return "\n".join(self.visit_body(node['body']))
+
+    def visit_Assign(self, node):
+        assignment_context = self.assignment_context
+        self.assignment_context = AssignmentContext.TARGET
+        targets = self.visit_assign_targets(node)
+        self.assignment_context = AssignmentContext.VALUE_VARIABLE
+        value = self.visit_assign_value(node)
+        self.assignment_context = assignment_context
+
+        return f"{node['lineno']:>2}: {self.indentation_level * Visitor.INDENTATION}{','.join(targets)} = {value}"
 
 
-def visit_Name(node, **kwargs):
-    """
-    :param node: {
-        'ast_type': 'Name',
-        'col_offset': 2,
-        'ctx': {'ast_type': 'Load'},
-        'id': 'b',
-        'lineno': 4
-    }
-    :return:
-    """
-    # alpha node['id']
-    # print(kwargs)
-    name = node['id']
-    if name in labels:
-        type_qualifier = labels[name]
-    else:
-        if name in kwargs["sources"]:
-            type_qualifier = TypeQualifers.TAINTED
-        elif name in kwargs["sanitizers"]:
-            type_qualifier = TypeQualifers.UNTAINTED
-        elif name in kwargs["sinks"]:
-            type_qualifier = TypeQualifers.UNTAINTED #sink can be a variable or a function, untainted might refer to the variable or to the arguments of the function
-        elif kwargs["assignment_context"]==AssignmentContext.VALUE:
-            type_qualifier = TypeQualifers.TAINTED
+    def visit_Compare(self, node):
+        assignment_context = self.assignment_context
+        self.assignment_context = AssignmentContext.VALUE_VARIABLE
+        left = self.visit_operand(node['left'])
+        comparators = list(self.visit_operand(node) for node in node['comparators'])
+        self.assignment_context = assignment_context
+        ops = self.visit_ops(node)
+        return f"{left} {', '.join(ops)} {','.join(comparators)}"
+
+
+    def visit_Call(self, node):
+        
+        func_name = node['func']['id']
+        if func_name in self.sinks:
+            args_type_qualifier = TypeQualifers.UNTAINTED
+        elif func_name in self.sanitizers:
+            args_type_qualifier = TypeQualifers.TAINTED
         else:
-            type_qualifier = next(TypeQualifers.labels)
-        labels[name] = type_qualifier
+            args_type_qualifier = TypeQualifers.TAINTED
 
-    # print(type_qualifier, name)
-    representation = f"{type_qualifier} {name}"
-    return representation
+        assignment_context = self.assignment_context
+
+        self.assignment_context = AssignmentContext.VALUE_FUNCTION_ARGUMENT
+        arguments = ', '.join(
+            f"{args_type_qualifier} {func_name}_arg{i} {arg}" for i, arg in
+            enumerate(self.visit_call_args(node))
+        )
+        self.assignment_context = AssignmentContext.VALUE_FUNCTION
+        representation = f"{self.visit_call_func(node)}({arguments})"
+        self.assignment_context = assignment_context
+        # print("exiting call")
+        return representation
 
 
-def visit_Str(node, **kwargs):
-    """
-    :param node: {'ast_type': 'Str', 'col_offset': 2, 'lineno': 1, 's': ''}
-    :return:
-    """
-    return f"{TypeQualifers.UNTAINTED} {repr(node['s'])}"
-
-
-def visit_Call(node, **kwargs):
-    """
-    :param node:
-        {'args': [],
-         'ast_type': 'Call',
-         'col_offset': 2,
-         'func': {'ast_type': 'Name',
-                  'col_offset': 2,
-                  'ctx': {'ast_type': 'Load'},
-                  'id': 'c',
-                  'lineno': 2},
-         'keywords': [],
-         'kwargs': None,
-         'lineno': 2,
-         'starargs': None
+    def visit_Name(self, node):
+        """
+        :param node: {
+            'ast_type': 'Name',
+            'col_offset': 2,
+            'ctx': {'ast_type': 'Load'},
+            'id': 'b',
+            'lineno': 4
         }
-    :return:
-    """
-    func_name = node['func']['id']
-    if func_name in kwargs['sinks']:
-        args_type_qualifier = TypeQualifers.UNTAINTED
-    elif func_name in kwargs['sanitizers']:
-        args_type_qualifier = TypeQualifers.TAINTED
-    else:
-        args_type_qualifier = TypeQualifers.TAINTED
-    kwargs["assignment_context"] = AssignmentContext.VALUE
-    arguments = ', '.join(f"{args_type_qualifier} {func_name}_arg{i} {arg}" for i,arg in enumerate(visit_nodes(node['args'], **kwargs)))
-    kwargs["assignment_context"] = AssignmentContext.NONE
-    representation = f"{visit_node(node['func'], **kwargs)}({arguments})"
-    return representation
+        :return:
+        """
+        name = node['id']
+        ssa_name = ''
+
+        if self.assignment_context in {
+            AssignmentContext.TARGET,
+            AssignmentContext.VALUE_VARIABLE,
+            AssignmentContext.VALUE_FUNCTION_ARGUMENT}:
+            pass
+
+        if self.assignment_context == AssignmentContext.TARGET:
+           if name not in self.sources:
+                ssa_name = self.make_ssa_variable_name(name)
+
+        elif self.assignment_context == AssignmentContext.VALUE_VARIABLE:
+            if name not in self._variable_ssa_map:#uninstatiated
+                if name not in self.sources:
+                    ssa_name = self.make_ssa_variable_name(name)
+                # self.sources.append(ssa_name)
+            else:
+                ssa_name = self._variable_ssa_map[name][-1]
+
+        elif self.assignment_context == AssignmentContext.VALUE_FUNCTION_ARGUMENT:
+            if name in self._variable_ssa_map:
+                ssa_name = self._variable_ssa_map[name][-1]
+            else:
+                ssa_name = self.make_ssa_variable_name(name)
+                #TODO?
+
+        # print(node["lineno"], name, ssa_name, self.assignment_context)
+
+        if ssa_name:
+            if name in self.sources:
+                self.sources.append(ssa_name)  #second assignment of a source, good idea???
+            elif name in self.sinks:
+                self.sinks.append(ssa_name)
+            name = ssa_name
+
+        if name in self._labels_map:
+            type_qualifier = self._labels_map[name]
+        else:
+            if name in self.sources:
+                type_qualifier = TypeQualifers.TAINTED
+            elif name in self.sanitizers:
+                type_qualifier = TypeQualifers.UNTAINTED
+            elif name in self.sinks:
+                type_qualifier = TypeQualifers.UNTAINTED  # sink can be a variable or a function, untainted might refer to the variable or to the arguments of the function
+            elif self.assignment_context == AssignmentContext.VALUE_VARIABLE:
+                type_qualifier = TypeQualifers.TAINTED
+            elif self.assignment_context == AssignmentContext.VALUE_FUNCTION_ARGUMENT:
+                type_qualifier = TypeQualifers.TAINTED
+
+            else:
+                type_qualifier = self.next_label()
+            self._labels_map[name] = type_qualifier
+
+        # print(type_qualifier, name)
+        representation = f"{type_qualifier} {name}"
+        return representation
 
 
-def visit_Expr(node, **kwargs):
-    """
-    :param node:
-    :return:
-    """
+    def visit_While(self, node):
 
-    value = visit_node(node['value'], **kwargs)
-    return f"{node['lineno']:>2}: {kwargs['indentation_level'] * INDENTATION}{value}"
+        indentation = self.indentation_level * Visitor.INDENTATION
+        self.indentation_level += 1
+        (test, body) = self.super.visit_While(node)
+        self.indentation_level -= 1
 
+        representation = f"{node['lineno']:>2}: {indentation}while ({test}):\n"
+        representation += "\n".join(body)
+        return representation
 
-def visit_BinOp(node, **kwargs):
-    """
-    :param node:
-    :return:
-    """
-    left = visit_node(node['left'], **kwargs)
-    right = visit_node(node['right'], **kwargs)
-    op = visit_node(node['op'], **kwargs)
-    representation = f"{left} {op} {right}"
-    return representation
+    def visit_If(self, node):
 
+        indentation = self.indentation_level * Visitor.INDENTATION
+        self.indentation_level += 1
+        (test, body, orelse) = self.super.visit_If(node)
+        self.indentation_level -= 1
 
-def visit_Compare(node, **kwargs):
-    """
-    :param node:
-    :return:
-    """
-    kwargs["assignment_context"] = AssignmentContext.VALUE
-    left = visit_node(node['left'], **kwargs)
-    comparators = visit_nodes(node['comparators'], **kwargs)
-    kwargs["assignment_context"] = AssignmentContext.NONE
-    ops = visit_nodes(node['ops'], **kwargs)
-    representation = f"{left} {', '.join(ops)} {','.join(comparators)}"
-    return representation
+        representation = f"{node['lineno']:>2}: {indentation}if({test}):\n"
+        representation += "\n".join(body)
+        if orelse:
+            representation += f"\n{node['lineno']+len(body):>2}: {indentation}else:\n"
+            representation += "\n".join(orelse)
+        return representation
 
+    def visit_Expr(self, node):
+        value = self.super.visit_Expr(node)
+        return f"{node['lineno']:>2}: {self.indentation_level * Visitor.INDENTATION}{value}"
 
-def visit_If(node, **kwargs):
-    """
-    :param node:
-    :return:
-    """
+    def visit_BinOp(self, node):
+        (left, op, right) = self.super.visit_BinOp(node)
+        return f"{left} {op} {right}"  # SrcVisitor?
 
-    test = visit_node(node['test'], **kwargs)
+    def visit_Str(self, node):
+        return f"{TypeQualifers.UNTAINTED} {self.super.visit_Str(node)}"
 
-    indentation_level = kwargs['indentation_level']
-    indentation = indentation_level * INDENTATION
+    def visit_int(self, node):
+        return f"{TypeQualifers.UNTAINTED} {self.super.visit_int(node)}"
 
-    representation = f"{node['lineno']:>2}: {indentation}if({test}):\n"
-
-    kwargs['indentation_level'] += 1
-    body = visit_nodes(node['body'], **kwargs)
-    representation += "\n".join(body)
-
-    orelse = visit_nodes(node['orelse'], **kwargs)
-
-    if orelse:#{node["lineno"]:>2}
-        representation += f"\n{node['lineno']+len(orelse):>2}: {indentation}else:\n"
-        representation += "\n".join(orelse)
-
-    return representation
-
-
-def visit_While(node, **kwargs):
-    """
-    :param node:
-    :return:
-    """
-    indentation_level = kwargs['indentation_level']
-    indentation = indentation_level * INDENTATION
-
-    test = visit_node(node['test'], **kwargs)
-    kwargs['indentation_level'] += 1
-    body = visit_nodes(node['body'], **kwargs)
-
-    representation = f"{node['lineno']:>2}: {indentation}while ({test}):\n"
-    representation += "\n".join(body)
-
-    return representation
-
-
-def visit_Break(node, **kwargs):
-    """
-    :param node:
-    :return:
-    """
-    return f"{node['lineno']:>2}: {kwargs['indentation_level'] * INDENTATION}break"
-
-
-def visit_Add(node, **kwargs):
-    """
-    :param node:
-    :return:
-    """
-    return '+'
-
-
-def visit_Num(node, **kwargs):
-    """
-    :param node:
-    :return:
-    """
-    return visit_node(node['n'], **kwargs)
-
-
-def visit_NotEq(node, **kwargs):
-    """
-    :param node:
-    :return:
-    """
-    return "!="
-
-
-def visit_Eq(node, **kwargs):
-    """
-    :param node:
-    :return:
-    """
-    return "=="
-
-
-def visit_int(node, **kwargs):
-    """
-    :param node:
-    :return:
-    """
-    key = "n_str"
-    return f"{TypeQualifers.UNTAINTED} {node[key]}"
-
-
-def visit_Gt(node, **kwargs):
-    """
-    :param node:
-    :return:
-    """
-    return ">"
-
-
-def visit_Lt(node, **kwargs):
-    """
-    :param node:
-    :return:
-    """
-    return "<"
-
-
-def visit_Load(node, **kwargs):
-    """
-    :param node:
-    :return:
-    """
-    raise NotImplementedError(f"visitor for ast_type Load not implemented")
-
-
-def visit_Store(node, **kwargs):
-    """
-    :param node:
-    :return:
-    """
-    # key = "k"
-    # return node[key]
-    raise NotImplementedError(f"visitor for ast_type Store not implemented")
-
-
-ast_type_visitors = defaultdict(lambda: novisit)
-
-# not really until really
-implemented_ast_type_visitors = {
-    'Store': visit_Store,
-    'Compare': visit_Compare,
-    'If': visit_If,
-    'NotEq': visit_NotEq,
-    'Eq': visit_Eq,
-    'Load': visit_Load,
-    'Expr': visit_Expr,
-    'Str': visit_Str,
-    'Break': visit_Break,
-    'Call': visit_Call,
-    'Module': visit_Module,
-    'BinOp': visit_BinOp,
-    'Name': visit_Name,
-    'While': visit_While,
-    'Lt': visit_Lt,
-    'Add': visit_Add,
-    'Num': visit_Num,
-    'Gt': visit_Gt,
-    'int': visit_int,
-    'Assign': visit_Assign,
-}
-ast_type_visitors.update(implemented_ast_type_visitors)
+    def visit_Break(self, node):
+        return f"{self.indentation_level * Visitor.INDENTATION}{self.super.visit_Break(node)}"

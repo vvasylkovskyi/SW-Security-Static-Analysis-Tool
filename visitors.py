@@ -8,7 +8,6 @@ class Visitor:
 
     def __init__(self, ast):
         self.ast = ast
-        self.visit = list()
 
     def visit_body(self, nodes):
         visits = list()
@@ -34,6 +33,33 @@ class Visitor:
             'Num': self.visit_Num
         }[node['ast_type']](node)
 
+
+    def visit_ops(self, node):
+        ops = list()
+        for node in node['ops']:
+            ast_type = node['ast_type']
+            if ast_type == 'NotEq':
+                ops.append(self.visit_NotEq(node))
+            elif ast_type == 'Eq':
+                ops.append(self.visit_Eq(node))
+            elif ast_type == 'Gt':
+                ops.append(self.visit_Gt(node))
+            elif ast_type == 'Lt':
+                ops.append(self.visit_Lt(node))
+        return ops
+
+
+    def visit_assign_targets(self, node):
+        return list(self.visit_Name(node) for node in node['targets'])
+
+    def visit_assign_value(self, node):
+        return self.visit_expression(node['value'])
+
+    def visit_call_func(self, node):
+        return self.visit_Name(node['func'])
+
+    def visit_call_args(self, node):
+        return list(self.visit_expression(node) for node in node['args'])
 
     def visit_test(self, node):
         return {
@@ -87,11 +113,8 @@ class Visitor:
         :param node:
         :return:
         """
-
-        targets = list(self.visit_Name(node) for node in node['targets'])
-
-        value = self.visit_expression(node['value'])
-
+        targets = self.visit_assign_targets(node)
+        value = self.visit_assign_value(node)
         return targets, value
 
 
@@ -113,10 +136,10 @@ class Visitor:
             }
         :return:
         """
-        func = self.visit_Name(node['func'])
+        func = self.visit_call_func(node)
         
-        args = list(self.visit_expression(node) for node in node['args'])
-        
+        args = self.visit_call_args(node)
+
         return func, args
 
 
@@ -156,17 +179,7 @@ class Visitor:
 
         comparators = list(self.visit_operand(node) for node in node['comparators'])
 
-        ops = list()
-        for node in node['ops']:
-            ast_type = node['ast_type']
-            if ast_type == 'NotEq':
-                ops.append(self.visit_NotEq(node))
-            elif ast_type == 'Eq':
-                ops.append(self.visit_Eq(node))
-            elif ast_type == 'Gt':
-                ops.append(self.visit_Gt(node))
-            elif ast_type == 'Lt':
-                ops.append(self.visit_Lt(node))
+        ops = self.visit_ops(node)
 
         return (left, ops, comparators)
 
@@ -203,7 +216,6 @@ class Visitor:
         }
         :return:
         """
-        # alpha node['id']
         return node['id']
 
 
@@ -311,7 +323,6 @@ class Visitor:
         # key = "k"
         # return node[key]
         raise NotImplementedError(f"visitor for ast_type Store not implemented")
-
 
 
 class Driver:
