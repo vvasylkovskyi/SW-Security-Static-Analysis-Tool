@@ -1,21 +1,6 @@
 from tf_visitor import TypeQualifers
 
 
-def resolve_equation(resolution, new_constraint):
-
-    resolution_lhs = resolution[1]
-    resolution_rhs = resolution[3]
-
-    new_constraint_lhs = new_constraint[1]
-    new_constraint_rhs = new_constraint[3]
-
-    # Reduce the equation by removing common parts
-    if new_constraint_lhs == resolution_rhs:
-        return (new_constraint[0], resolution_lhs, '<=', new_constraint_rhs)
-    elif new_constraint_rhs == resolution_lhs:
-        return (new_constraint[0], new_constraint_lhs, '<=', resolution_rhs)
-
-
 def is_one_of_the_type_qualifiers(value):
     return value == TypeQualifers.TAINTED or value == TypeQualifers.UNTAINTED
 
@@ -54,41 +39,100 @@ def debug_print_lhs_and_rhs(constraint):
     print("Right hand side: ", constraint[3])
 
 
+def resolve_equation(resolution, new_constraint, source_greek_letter):
+
+    resolution_lhs = resolution[1]
+    resolution_rhs = resolution[3]
+
+    new_constraint_lhs = new_constraint[1]
+    new_constraint_rhs = new_constraint[3]
+
+    # Reduce the equation by removing common parts
+    if new_constraint_lhs == resolution_rhs:
+        return (new_constraint[0], resolution_lhs, '<=', new_constraint_rhs)
+    elif new_constraint_rhs == resolution_lhs:
+        return (new_constraint[0], new_constraint_lhs, '<=', resolution_rhs)
+    else:
+        # No reduction. return the constraint with the source, if any
+        if contains_source(resolution, source_greek_letter) and contains_source(new_constraint, source_greek_letter):
+            # Both constraints contain source. Choose one that is tainted, if any
+            print("HERE")
+            if is_tainted(resolution) and is_tainted(new_constraint):
+                # if both are tainted, choose the new one (to respect the order of executions)
+                return new_constraint
+            elif is_tainted(resolution) and not is_tainted(new_constraint):
+                return resolution
+            elif not is_tainted(resolution) and is_tainted(new_constraint):
+                return new_constraint
+            # If none is tained, then move on to the next constraint
+            return new_constraint
+        elif contains_source(resolution, source_greek_letter) and not contains_source(new_constraint, source_greek_letter):
+            return resolution
+        elif not contains_source(resolution, source_greek_letter) and contains_source(new_constraint, source_greek_letter):
+            return new_constraint
+
+    # If none is tained and none is source, then just move on to the next constraint
+    return new_constraint
+
+
+def contains_source(constraint, source_greek_letter):
+    lhs = constraint[1]
+    rhs = constraint[3]
+    return lhs == source_greek_letter or rhs == source_greek_letter
+
+
+def debug_print_compare_constraints(resolution, new_constraint):
+    print("---------------")
+    print("Resolution: ", resolution)
+    print("New Constraint: ", new_constraint)
+
+
+def reduce_constraints(resolution, new_constraint, source_greek_letter):
+    # debug_print_compare_constraints(resolution, new_constraint)
+    return resolve_equation(resolution, new_constraint, source_greek_letter)
+
+
+def is_tainted(greek_letter_constraint):
+    lhs = greek_letter_constraint[1]
+    return lhs == TypeQualifers.TAINTED
+
+
 def has_vulnerability(source, sink, src_with_type_qualifiers, constraints):
     tained_source_index = find_pattern_index(
         source, src_with_type_qualifiers)
     sink_index = find_pattern_index(
         sink, src_with_type_qualifiers)
 
-    first_constraint = constraints[tained_source_index]
+    first_constraint = constraints[0]  # Starting always from zero
+    # print("[Index: 0 ]", "Constraint: ",
+    #       first_constraint)
+    source_constraint = constraints[tained_source_index]
+    # The Height is always equal to the index of the sink
+    constraints_height = sink_index
+    # debug_print_lhs_and_rhs(first_constraint)  # Starts with tained
 
-    constraints_height = len(constraints)
-    # debug_print_lhs_and_rhs(first_constraint) # Starts with tained
-
-    # last_constraint = constraints[sink_index]
+    # print("sink index: ", sink_index)
     # debug_print_lhs_and_rhs(last_constraint)
 
     source_greek_letter = find_greek_letter_in_constraint(
-        first_constraint)
+        source_constraint)
 
     print("Source greek letter: ", source_greek_letter)
     resolution = first_constraint
-    constraint_index = tained_source_index
+    constraint_index = 0
     while constraints_height > constraint_index:
-        greek_letter = find_greek_letter_in_constraint(
-            constraints[constraint_index])
+        constraint_index += 1
 
-        # if greek_letter == source_greek_letter:
-        # print("Do something. Reassignment?")
+        # print("[Index:", constraint_index, "] Constraint: ",
+        #       constraints[constraint_index])
 
-        if greek_letter == source_greek_letter and constraint_index == sink_index:
-            resolution = resolve_equation(
-                resolution, constraints[constraint_index])
+        resolution = reduce_constraints(
+            resolution, constraints[constraint_index], source_greek_letter)
 
         if is_illegal_flow(resolution):
+            print("Is illegal flow!")
             return True
 
-        constraint_index += 1
     return False
 
 
