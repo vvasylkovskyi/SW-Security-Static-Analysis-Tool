@@ -39,6 +39,29 @@ def debug_print_lhs_and_rhs(constraint):
     print("Right hand side: ", constraint[3])
 
 
+def get_next_best_constraint(resolution, new_constraint, source_greek_letter):
+    # No reduction. return the constraint with the source, if any
+    if contains_source(resolution, source_greek_letter) and contains_source(new_constraint, source_greek_letter):
+        # Both constraints contain source. Choose one that is tainted, if any
+        print("HERE")
+        if is_tainted(resolution) and is_tainted(new_constraint):
+            # if both are tainted, choose the new one (to respect the order of executions)
+            return new_constraint
+        elif is_tainted(resolution) and not is_tainted(new_constraint):
+            return resolution
+        elif not is_tainted(resolution) and is_tainted(new_constraint):
+            return new_constraint
+        # If none is tained, then move on to the next constraint
+        return new_constraint
+    elif contains_source(resolution, source_greek_letter) and not contains_source(new_constraint, source_greek_letter):
+        return resolution
+    elif not contains_source(resolution, source_greek_letter) and contains_source(new_constraint, source_greek_letter):
+        return new_constraint
+    else:
+        # If none is tained and none is source, then just move on to the next constraint
+        return new_constraint
+
+
 def resolve_equation(resolution, new_constraint, source_greek_letter):
 
     resolution_lhs = resolution[1]
@@ -53,26 +76,7 @@ def resolve_equation(resolution, new_constraint, source_greek_letter):
     elif new_constraint_rhs == resolution_lhs:
         return (new_constraint[0], new_constraint_lhs, '<=', resolution_rhs)
     else:
-        # No reduction. return the constraint with the source, if any
-        if contains_source(resolution, source_greek_letter) and contains_source(new_constraint, source_greek_letter):
-            # Both constraints contain source. Choose one that is tainted, if any
-            print("HERE")
-            if is_tainted(resolution) and is_tainted(new_constraint):
-                # if both are tainted, choose the new one (to respect the order of executions)
-                return new_constraint
-            elif is_tainted(resolution) and not is_tainted(new_constraint):
-                return resolution
-            elif not is_tainted(resolution) and is_tainted(new_constraint):
-                return new_constraint
-            # If none is tained, then move on to the next constraint
-            return new_constraint
-        elif contains_source(resolution, source_greek_letter) and not contains_source(new_constraint, source_greek_letter):
-            return resolution
-        elif not contains_source(resolution, source_greek_letter) and contains_source(new_constraint, source_greek_letter):
-            return new_constraint
-
-    # If none is tained and none is source, then just move on to the next constraint
-    return new_constraint
+        return get_next_best_constraint(resolution, new_constraint, source_greek_letter)
 
 
 def contains_source(constraint, source_greek_letter):
