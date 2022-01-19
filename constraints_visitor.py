@@ -1,5 +1,6 @@
 from collections import defaultdict, namedtuple
 from utilities import greek_letters_lowercase
+from tf_visitor import AssignmentContext
 
 """
 x = y -> q_y <= q_x
@@ -7,6 +8,7 @@ do not taint x with y
 """
 Constraint = namedtuple("Constraint", ("line", "lhs_tq", "lhs_id", "rhs_tq", "rhs_id"))
 Constraint.__repr__ = lambda s:f"{s.line:>2}: {s.lhs_tq} <= {s.rhs_tq}"
+
 
 class TypeQualifers:
     TAINTED = "tainted"
@@ -50,9 +52,6 @@ def visit_Assign(node, **kwargs):
     kwargs["assignment_context"] = (target_type_qualifier, target_id) #for binops
     value = visit_node(node['value'], **kwargs)
     del kwargs["assignment_context"]
-    # if value:
-    #     value_type_qualifier, value_id = value
-    #     kwargs["constraints"].append(Constraint(node["lineno"], value_type_qualifier, value_id, target_type_qualifier, target_id))
 
 
 def visit_Name(node, **kwargs):
@@ -78,6 +77,8 @@ def visit_Name(node, **kwargs):
             type_qualifier = TypeQualifers.UNTAINTED
         elif name in kwargs["sinks"]:
             type_qualifier = TypeQualifers.UNTAINTED  # sink can be a variable or a function, untainted might refer to the variabl or to the arguments of the function
+        elif "assignment_context" in kwargs:
+            type_qualifier = TypeQualifers.TAINTED #uninstantiated variable...
         else:
             type_qualifier = next(kwargs["labels"])
         kwargs["labels_map"][name] = type_qualifier
@@ -148,14 +149,6 @@ def visit_BinOp(node, **kwargs):
     #TODO what is needed here?
     left = visit_node(node['left'], **kwargs)
     right = visit_node(node['right'], **kwargs)
-    # if "assignment_context" in kwargs:
-    #     if left: #recursive binops
-    #         kwargs["constraints"].append(Constraint(node["lineno"], *left, *kwargs["assignment_context"]))
-    #     kwargs["constraints"].append(Constraint(node["lineno"], *right, *kwargs["assignment_context"]))
-
-    # print("left", left)
-    # print("right", right)
-    # return
 
 def visit_Compare(node, **kwargs):
     """

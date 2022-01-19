@@ -1,13 +1,19 @@
 
 from collections import defaultdict
 from utilities import greek_letters_lowercase
-
+from enum import Enum
 
 INDENTATION = "    "
 class TypeQualifers:
     TAINTED = "tainted"
     UNTAINTED = "untainted"
     labels = filter(None, greek_letters_lowercase)
+
+class AssignmentContext(Enum):
+    NONE = 0
+    TARGET = 1
+    VALUE = 2
+
 
 labels = {}
 
@@ -39,7 +45,7 @@ def visit_Module(node, **kwargs):
     """
     # print(kwargs)
     reset_data_structures()
-    return visit_nodes(node['body'], indentation_level=0, **kwargs)
+    return visit_nodes(node['body'], indentation_level=0, assignment_context=AssignmentContext.NONE, **kwargs)
 
 
 def visit_Assign(node, **kwargs):
@@ -48,8 +54,12 @@ def visit_Assign(node, **kwargs):
     :return:
     """
 
+    kwargs["assignment_context"] = AssignmentContext.TARGET
     targets = visit_nodes(node['targets'], **kwargs)
+    kwargs["assignment_context"] = AssignmentContext.VALUE
     value = visit_node(node['value'], **kwargs)
+    kwargs["assignment_context"] = AssignmentContext.NONE
+
     # r = f"{','.join(targets)}={value}"
     r = f"{node['lineno']:>2}: {kwargs['indentation_level'] * INDENTATION}{','.join(targets)} = {value}"
     return r
@@ -77,7 +87,9 @@ def visit_Name(node, **kwargs):
         elif name in kwargs["sanitizers"]:
             type_qualifier = TypeQualifers.UNTAINTED
         elif name in kwargs["sinks"]:
-            type_qualifier = TypeQualifers.UNTAINTED #sink can be a variable or a function, untainted might refer to the variabl or to the arguments of the function
+            type_qualifier = TypeQualifers.UNTAINTED #sink can be a variable or a function, untainted might refer to the variable or to the arguments of the function
+        elif kwargs["assignment_context"]==AssignmentContext.VALUE:
+            type_qualifier = TypeQualifers.TAINTED
         else:
             type_qualifier = next(TypeQualifers.labels)
         labels[name] = type_qualifier
@@ -120,7 +132,9 @@ def visit_Call(node, **kwargs):
         args_type_qualifier = TypeQualifers.TAINTED
     else:
         args_type_qualifier = TypeQualifers.TAINTED
+    kwargs["assignment_context"] = AssignmentContext.VALUE
     arguments = ', '.join(f"{args_type_qualifier} {func_name}_arg{i} {arg}" for i,arg in enumerate(visit_nodes(node['args'], **kwargs)))
+    kwargs["assignment_context"] = AssignmentContext.NONE
     representation = f"{visit_node(node['func'], **kwargs)}({arguments})"
     return representation
 
@@ -152,8 +166,10 @@ def visit_Compare(node, **kwargs):
     :param node:
     :return:
     """
+    kwargs["assignment_context"] = AssignmentContext.VALUE
     left = visit_node(node['left'], **kwargs)
     comparators = visit_nodes(node['comparators'], **kwargs)
+    kwargs["assignment_context"] = AssignmentContext.NONE
     ops = visit_nodes(node['ops'], **kwargs)
     representation = f"{left} {', '.join(ops)} {','.join(comparators)}"
     return representation
