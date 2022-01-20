@@ -14,10 +14,11 @@ $ python tf_analyser.py <ast> <vulnerabilities>
 from pathlib import Path
 from pprint import pprint
 
-from utilities import load_json
-from tf_analysis import visit_with_pattern
 from src_visitor import SrcVisitor
-from tf_visitor import TaintedFlowVisitor
+from clean_ast_visitor import CleanAstVisitor
+from instantiation_visitor import InstantiationVisitor
+from utilities import load_json
+# from tf_visitor import TaintedFlowVisitor
 # from constraints_visitor import visit_node as constraints_visit_node
 
 
@@ -27,14 +28,31 @@ def make_vulnerability(vulnerability, source, sink, unsanitized_flows="yes", san
 def report(context, obj):
     print()
     print(context)
-    print(obj)
+    if isinstance(obj, str):
+        print(obj)
+    else:
+        pprint(obj)
 
 def main_experimental(ast, patterns):
+
     ast = load_json(ast)
+
     report("SOURCE:", SrcVisitor(ast).visit_ast())
+
+    CleanAstVisitor(ast).visit_ast()
+
     for pattern in load_json(patterns):
+
+        ast = ast.copy()
+
+        InstantiationVisitor(ast, **pattern).visit_ast()
+
         report("PATTERN:", pattern)
-        report("SRC WITH TYPE QUALIFIERS:", TaintedFlowVisitor(ast, **pattern).visit_ast())
+
+        report("AST:", ast)
+
+
+        # report("SRC WITH TYPE QUALIFIERS:", TaintedFlowVisitor(ast, **pattern).visit_ast())
 
         # constraints = list()
         # visit_with_pattern(ast, pattern, constraints_visit_node, constraints=constraints, labels_map=dict(), **pattern)

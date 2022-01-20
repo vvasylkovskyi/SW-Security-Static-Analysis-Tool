@@ -56,6 +56,14 @@ class Visitor:
         return self.visit_expression(node['value'])
 
     def visit_call_func(self, node):
+        """
+        :param node: {'ast_type': 'Name',
+                      'col_offset': 2,
+                      'ctx': {'ast_type': 'Load'},
+                      'id': 'c',
+                      'lineno': 2}
+        :return:
+        """
         return self.visit_Name(node['func'])
 
     def visit_call_args(self, node):
@@ -230,6 +238,16 @@ class Visitor:
     def visit_Num(self, node):
         """
         :param node:
+            {
+                                "ast_type": "Num",
+                                "col_offset": 9,
+                                "lineno": 3,
+                                "n": {
+                                    "ast_type": "int",
+                                    "n": 3,
+                                    "n_str": "3"
+                                }
+                            }
         :return:
         """
         return self.visit_int(node['n'])
@@ -237,7 +255,11 @@ class Visitor:
 
     def visit_int(self, node):
         """
-        :param node:
+        :param node: {
+                                    "ast_type": "int",
+                                    "n": 3,
+                                    "n_str": "3"
+                                }
         :return:
         """
         return node["n_str"]
@@ -335,13 +357,21 @@ class Driver:
         return parser
 
     @staticmethod
-    def drive(visitor):
+    def get_asts():
         from utilities import load_json
         from pathlib import Path
         args = Driver.parser().parse_args()
+        asts = dict()
         for ast in args.asts:
+            p = Path(ast)
+            asts[p] = load_json(p)
+        return asts
+
+    @staticmethod
+    def drive(visitor):
+        for ast in Driver.get_asts():
             print(ast)
-            v = visitor(load_json(Path(ast)))
+            v = visitor(ast)
             print(v.visit_ast())
 
 
