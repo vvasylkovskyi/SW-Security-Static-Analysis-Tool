@@ -50,13 +50,13 @@ class Visitor:
         return ops
 
 
-    def visit_assign_targets(self, node):
+    def visit_Assign_targets(self, node):
         return list(self.visit_Name(node) for node in node['targets'])
 
-    def visit_assign_value(self, node):
+    def visit_Assign_value(self, node):
         return self.visit_expression(node['value'])
 
-    def visit_call_func(self, node):
+    def visit_Call_func(self, node):
         """
         :param node: {'ast_type': 'Name',
                       'col_offset': 2,
@@ -67,8 +67,10 @@ class Visitor:
         """
         return self.visit_Name(node['func'])
 
-    def visit_call_args(self, node):
+
+    def visit_Call_args(self, node):
         return list(self.visit_expression(node) for node in node['args'])
+
 
     def visit_test(self, node):
         return {
@@ -99,7 +101,6 @@ class Visitor:
             expression = self.visit_Str(node)
         elif ast_type == 'Num':
             expression = self.visit_Num(node)
-
         return expression
 
 
@@ -122,8 +123,8 @@ class Visitor:
         :param node:
         :return:
         """
-        targets = self.visit_assign_targets(node)
-        value = self.visit_assign_value(node)
+        targets = self.visit_Assign_targets(node)
+        value = self.visit_Assign_value(node)
         return targets, value
 
 
@@ -145,9 +146,9 @@ class Visitor:
             }
         :return:
         """
-        func = self.visit_call_func(node)
+        func = self.visit_Call_func(node)
         
-        args = self.visit_call_args(node)
+        args = self.visit_Call_args(node)
 
         return func, args
 
@@ -226,7 +227,6 @@ class Visitor:
         :return:
         """
         return node['id']
-
 
     def visit_Str(self, node):
         """

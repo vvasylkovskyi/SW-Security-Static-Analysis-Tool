@@ -14,8 +14,8 @@ class CleanAstVisitor(Visitor):
 
     def visit_Assign(self, node):
         del node['col_offset']
-        self.visit_assign_targets(node)
-        self.visit_assign_value(node)
+        self.visit_Assign_targets(node)
+        self.visit_Assign_value(node)
 
 
     def visit_Call(self, node):
@@ -31,8 +31,8 @@ class CleanAstVisitor(Visitor):
         del node['lineno']
 
         # node['func'] = node['func']['id']
-        self.visit_call_func(node)
-        self.visit_call_args(node)
+        self.visit_Call_func(node)
+        self.visit_Call_args(node)
 
 
     def visit_Expr(self, node):
@@ -87,10 +87,10 @@ class CleanAstVisitor(Visitor):
         del node['col_offset']
         del node['lineno']
         self.visit_int(node['n'])
-        # node['n'] = node['n']['n']
+        node['n'] = node['n']['n_str']
 
-    def visit_int(self, node):
-        del node["n"]
+    # def visit_int(self, node):
+    #     del node["n"]
 
     def visit_Break(self, node):
         del node['col_offset']

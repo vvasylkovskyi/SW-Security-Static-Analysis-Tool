@@ -20,6 +20,7 @@ from src_visitor import SrcVisitor
 from clean_ast_visitor import CleanAstVisitor
 from instantiation_visitor import InstantiationVisitor
 from tf_visitor import TaintedFlowVisitor
+from tf_src_visitor import TaintedFlowSrcVisitor
 
 # from constraints_visitor import visit_node as constraints_visit_node
 
@@ -47,20 +48,23 @@ def main_experimental(ast, patterns):
 
         ast = ast.copy()
 
-        report("PATTERN:", pattern)
+        # report("PATTERN:", pattern) # to compare to after their mutation
 
         InstantiationVisitor(ast, **pattern).visit_ast() #mutate pattern
 
         report("PATTERN:", pattern)
 
-        # report("AST:", ast)
+        # report("AST:", ast) #to check progress of instantiation
 
-        TaintedFlowVisitor(ast).visit_ast() #assign taint qualifiers
+        tfv = TaintedFlowVisitor(ast)
+        tfv.visit_ast() #assign taint qualifiers
 
         report("AST:", ast)
 
+        report("LABELS:", tfv.labels)
 
-        # report("SRC WITH TYPE QUALIFIERS:", TaintedFlowVisitor(ast, **pattern).visit_ast())
+
+        report("SOURCE WITH TYPE QUALIFIERS:", TaintedFlowSrcVisitor(ast).visit_ast())
 
         # constraints = list()
         # visit_with_pattern(ast, pattern, constraints_visit_node, constraints=constraints, labels_map=dict(), **pattern)
