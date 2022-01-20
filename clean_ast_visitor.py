@@ -43,20 +43,20 @@ class CleanAstVisitor(Visitor):
     def visit_BinOp(self, node):
 
         del node['col_offset']
-        del node['op']
+        # node['op'] = node['op']['ast_type']
 
         self.visit_operand(node['left'])
         self.visit_operand(node['right'])
 
 
-    def visit_Compare(self, node):
-        # print(node.keys())
-        del node['ops'] # must be first due to recursion... can't explain much for now
-
-        self.visit_operand(node['left'])
-
-        for node in node['comparators']:
-            self.visit_operand(node)
+    # def visit_Compare(self, node):
+    #     # print(node.keys())
+    #     # del node['ops'] # must be first due to recursion... can't explain much for now
+    #
+    #     self.visit_operand(node['left'])
+    #
+    #     for node in node['comparators']:
+    #         self.visit_operand(node)
 
 
     def visit_While(self, node):
@@ -86,18 +86,16 @@ class CleanAstVisitor(Visitor):
     def visit_Num(self, node):
         del node['col_offset']
         del node['lineno']
-        node['n'] = node['n']['n']
+        self.visit_int(node['n'])
+        # node['n'] = node['n']['n']
+
+    def visit_int(self, node):
+        del node["n"]
 
     def visit_Break(self, node):
         del node['col_offset']
 
 
-
 if __name__ == '__main__':
     from visitors import Driver
-    for p,ast in Driver.get_asts().items():
-        print(p)
-        CleanAstVisitor(ast).visit_ast()
-        pprint(ast)
-        print()
-
+    Driver.print_ast(CleanAstVisitor)

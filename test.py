@@ -3,6 +3,7 @@
 """
 
 from pathlib import Path
+from pprint import pprint
 from zipfile import ZipFile
 import shutil
 
@@ -51,6 +52,14 @@ def pprint_asts():
         dump_json(asts/p.name, load_json(p), indent=4)
     return
 
+def pprint_patterns():
+    tests = get_tests()
+    for t in tests:
+        print()
+        print(t)
+        pprint(load_json(t.patterns))
+    return
+
 def main():
     if not slices.exists():
         extract()
@@ -71,11 +80,14 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--extract", action='store_true', help=f"flag to extract slices from zip archive ({slices_url})") #action=argparse.BooleanOptionalAction 3.10
     parser.add_argument("--pprint_asts", action='store_true', help="pretty print abstract syntax trees")
+    parser.add_argument("--pprint_patterns", action='store_true', help="pretty print abstract syntax trees")
 
     args = parser.parse_args()
     if args.extract:
         extract()
     elif args.pprint_asts:
         pprint_asts()
+    elif args.pprint_patterns:
+        pprint_patterns()
     else:
         main()

@@ -14,11 +14,13 @@ $ python tf_analyser.py <ast> <vulnerabilities>
 from pathlib import Path
 from pprint import pprint
 
+from utilities import load_json
+
 from src_visitor import SrcVisitor
 from clean_ast_visitor import CleanAstVisitor
 from instantiation_visitor import InstantiationVisitor
-from utilities import load_json
-# from tf_visitor import TaintedFlowVisitor
+from tf_visitor import TaintedFlowVisitor
+
 # from constraints_visitor import visit_node as constraints_visit_node
 
 
@@ -45,9 +47,15 @@ def main_experimental(ast, patterns):
 
         ast = ast.copy()
 
-        InstantiationVisitor(ast, **pattern).visit_ast()
+        report("PATTERN:", pattern)
+
+        InstantiationVisitor(ast, **pattern).visit_ast() #mutate pattern
 
         report("PATTERN:", pattern)
+
+        # report("AST:", ast)
+
+        TaintedFlowVisitor(ast).visit_ast() #assign taint qualifiers
 
         report("AST:", ast)
 

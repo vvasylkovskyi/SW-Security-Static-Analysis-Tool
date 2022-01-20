@@ -1,5 +1,6 @@
 """
 """
+from pprint import pprint
 
 
 class Visitor:
@@ -368,11 +369,17 @@ class Driver:
         return asts
 
     @staticmethod
-    def drive(visitor):
-        for ast in Driver.get_asts():
-            print(ast)
-            v = visitor(ast)
-            print(v.visit_ast())
+    def print_visit(visitor):
+        for p, ast in Driver.get_asts().items():
+            print(p)
+            print(visitor(ast).visit_ast())
+
+    @staticmethod
+    def print_ast(visitor):
+        for p, ast in Driver.get_asts().items():
+            print(p)
+            visitor(ast).visit_ast()
+            pprint(ast)
 
 
 if __name__ == '__main__':
