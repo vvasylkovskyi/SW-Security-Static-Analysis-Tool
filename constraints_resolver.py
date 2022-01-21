@@ -1,4 +1,6 @@
 from tf_visitor import TypeQualifers
+from constraints_visitor import Constraint
+# Constraint = namedtuple("Constraint", ("line", "lhs_tq", "lhs_id", "rhs_tq", "rhs_id"))
 
 
 class ConstraintsResolver:
@@ -16,8 +18,8 @@ class ConstraintsResolver:
         return value == TypeQualifers.TAINTED or value == TypeQualifers.UNTAINTED
 
     def find_greek_letter_in_constraint(self, constraint):
-        left_hand_side = constraint[1]
-        right_hand_side = constraint[3]
+        left_hand_side = constraint.lhs_tq
+        right_hand_side = constraint.rhs_tq
         if self.is_one_of_the_type_qualifiers(left_hand_side):
             return right_hand_side
         elif self.is_one_of_the_type_qualifiers(right_hand_side):
@@ -39,8 +41,8 @@ class ConstraintsResolver:
     def is_illegal_flow(self, constraint):
         # if tainted <= untainted
         # means it is illegal flow
-        left_hand_side = constraint[1]
-        right_hand_side = constraint[3]
+        left_hand_side = constraint.lhs_tq
+        right_hand_side = constraint.rhs_tq
 
         if left_hand_side == TypeQualifers.TAINTED and right_hand_side == TypeQualifers.UNTAINTED:
             return True
@@ -101,35 +103,42 @@ class ConstraintsResolver:
                 self.remove_equation_from_the_queue(constraint)
         return resolution
 
+    # TODO. Not working yet.
     def check_if_source_is_being_sanitized(self, constraint, source_greek_letter):
         print("y")
-        constraint_rhs = constraint[3]
+        constraint_rhs = constraint.rhs_tq
         if constraint_rhs == TypeQualifers.TAINTED:
             print("Sanitizing?")
             return True
         return False
 
     def try_simplify_equation(self, resolution, new_constraint):
-        resolution_lhs = resolution[1]
-        resolution_rhs = resolution[3]
+        resolution_lhs = resolution.lhs_tq
+        resolution_rhs = resolution.rhs_tq
 
-        new_constraint_lhs = new_constraint[1]
-        new_constraint_rhs = new_constraint[3]
+        new_constraint_lhs = new_constraint.lhs_tq
+        new_constraint_rhs = new_constraint.rhs_tq
 
         if new_constraint_lhs == resolution_rhs:
-            return (new_constraint[0], resolution_lhs, '<=', new_constraint_rhs)
+            return Constraint(new_constraint.line, resolution.lhs_tq, resolution.lhs_id, new_constraint.rhs_tq, new_constraint.rhs_id)
         elif new_constraint_rhs == resolution_lhs:
-            return (new_constraint[0], new_constraint_lhs, '<=', resolution_rhs)
+            return Constraint(new_constraint.line, new_constraint.lhs_tq, new_constraint.lhs_id, resolution.rhs_tq, resolution.rhs_id)
         else:
             return False
 
     def resolve_equation(self, resolution, new_constraint, source_greek_letter):
+        print("------Constraint test:------")
+        print("Constraint line: ", new_constraint.line)
+        print("Constraint lhs: ", new_constraint.lhs_tq)
+        print("Constraint lhs id : ", new_constraint.lhs_id)
+        print("Constraint rhs id : ", new_constraint.rhs_id)
+        print("Constraint rhs id : ", new_constraint.rhs_id)
 
-        resolution_lhs = resolution[1]
-        resolution_rhs = resolution[3]
+        resolution_lhs = resolution.lhs_tq
+        resolution_rhs = resolution.rhs_tq
 
-        new_constraint_lhs = new_constraint[1]
-        new_constraint_rhs = new_constraint[3]
+        new_constraint_lhs = new_constraint.lhs_tq
+        new_constraint_rhs = new_constraint.rhs_tq
 
         if self.is_idempotent_equation(new_constraint):
             print("HERE")
@@ -138,7 +147,7 @@ class ConstraintsResolver:
         # Reduce the equation by removing common parts
 
         if self.contains_source(resolution, source_greek_letter) and self.contains_source(new_constraint, source_greek_letter):
-            print("Sanitizing?")
+            # Here, we are about to reduce into illegal flow
             if resolution_lhs == TypeQualifers.TAINTED and new_constraint_rhs == TypeQualifers.UNTAINTED:
                 return self.try_simplify_equation(resolution, new_constraint)
             return resolution
@@ -149,8 +158,8 @@ class ConstraintsResolver:
             return self.get_next_best_constraint(resolution, new_constraint, source_greek_letter)
 
     def contains_source(self, constraint, source_greek_letter):
-        lhs = constraint[1]
-        rhs = constraint[3]
+        lhs = constraint.lhs_tq
+        rhs = constraint.rhs_tq
         return lhs == source_greek_letter or rhs == source_greek_letter
 
     def debug_print_compare_constraints(self, resolution, new_constraint):
@@ -163,7 +172,7 @@ class ConstraintsResolver:
         return self.resolve_equation(resolution, new_constraint, source_greek_letter)
 
     def is_tainted(self, greek_letter_constraint):
-        lhs = greek_letter_constraint[1]
+        lhs = greek_letter_constraint.lhs_tq
         return lhs == TypeQualifers.TAINTED
 
     def has_vulnerability(self, source, sink, src_with_type_qualifiers, constraints):
