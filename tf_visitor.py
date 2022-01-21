@@ -8,13 +8,16 @@ class TaintQualifer:
     UNTAINTED = "untainted"
     labels = greek_letters_lowercase
 
+
 class CallArgKeys(InstantiationCallArgKeys):
     Call_arg_TaintQualifer ="Call_arg_TaintQualifer"
+
 
 class TaintedFlowVisitor(Visitor):
 
     def __init__(self, ast):
         super(TaintedFlowVisitor, self).__init__(ast)
+        self.super = super(TaintedFlowVisitor, self)
         self._labels = filter(None, TaintQualifer.labels)
         self._labels_map = dict()
 
@@ -29,7 +32,7 @@ class TaintedFlowVisitor(Visitor):
 
 
     def check_for_Call_arg(self, node):
-        if CallArgKeys.Call_arg in node:
+        if CallArgKeys.Call_arg in node and CallArgKeys.Call_arg_CallFlowCategory in node:
             arg_flow_category = node.pop(CallArgKeys.Call_arg_CallFlowCategory)
             node[CallArgKeys.Call_arg_TaintQualifer] = {
                 FlowCategory.SOURCE : TaintQualifer.TAINTED,
@@ -64,36 +67,27 @@ class TaintedFlowVisitor(Visitor):
         node[TaintQualifer.__name__] = self._labels_map[name]
 
 
-    def visit_Call_args(self, node):
-        self.check_for_Call_arg(node)
-        super(TaintedFlowVisitor, self).visit_Call_args(node)
-
-
-    def visit_binop_operand(self, node):
-        ast_type = node['ast_type']
-        if ast_type == 'Str':
-            return self.visit_Str(node)
-        elif ast_type == 'Num':
-            return self.visit_Num(node)
-        if ast_type == 'Name':
-            self.visit_Name(node)
-        elif ast_type == 'Call':
-            self.visit_Call(node)
-        elif ast_type == 'BinOp':
-            self.visit_BinOp(node)
+    def visit_Call_args(self, nodes):
+        for node in nodes:
+            self.check_for_Call_arg(node)
+        self.super.visit_Call_args(nodes)
 
 
     def visit_BinOp(self, node):
         self.check_for_Call_arg(node)
-        self.visit_binop_operand(node['left'])
-        self.visit_binop_operand(node['right'])
+        self.super.visit_BinOp(node)
 
+    def check_for_Call_arg_CallFlowCategory(self, node):
+        if CallArgKeys.Call_arg_CallFlowCategory in node:
+            del node[CallArgKeys.Call_arg_CallFlowCategory]
 
     def visit_Str(self, node):
         node[TaintQualifer.__name__] = TaintQualifer.UNTAINTED
         self.check_for_Call_arg(node)
+        self.check_for_Call_arg_CallFlowCategory(node)
 
 
     def visit_Num(self, node):
         node[TaintQualifer.__name__] = TaintQualifer.UNTAINTED
         self.check_for_Call_arg(node)
+        self.check_for_Call_arg_CallFlowCategory(node)

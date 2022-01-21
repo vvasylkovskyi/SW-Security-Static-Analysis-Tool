@@ -18,30 +18,9 @@ class TaintedFlowSrcVisitor(Visitor):
         return f"{node[TaintQualifer.__name__]} {self.super.visit_Name(node)}"
 
 
-    def visit_Assign_targets(self, nodes):
-        return ', '.join(self.visit_Assign_target(node) for node in nodes)
-
-
-    def visit_Assign_value(self, node):
-        ast_type = node['ast_type']
-        if ast_type == 'Str':
-            return self.visit_Str(node)
-        elif ast_type == 'Num':
-            return self.visit_Num(node)
-        elif ast_type == 'Name':
-            return self.visit_Name(node)
-        elif ast_type == 'Call':
-            return self.visit_Call(node)
-        elif ast_type == 'BinOp':
-            return self.visit_BinOp(node)
-
-
     def visit_Assign(self, node):
-
-        value = self.visit_Assign_value(node['value'])
-        targets = self.visit_Assign_targets(node['targets'])
-
-        return f"{node['lineno']:>2}: {self.indentation_level * Visitor.INDENTATION}{targets} = {value}"
+        targets, value = self.super.visit_Assign(node)
+        return f"{node['lineno']:>2}: {self.indentation_level * Visitor.INDENTATION}{', '.join(targets)} = {value}"
 
 
     def visit_Compare(self, node):
@@ -52,17 +31,7 @@ class TaintedFlowSrcVisitor(Visitor):
 
 
     def visit_Call_arg(self, node):
-        ast_type = node['ast_type']
-        if ast_type == 'Str':
-            arg = self.visit_Str(node)
-        elif ast_type == 'Num':
-            arg = self.visit_Num(node)
-        elif ast_type == 'Name':
-            arg = self.visit_Name(node)
-        elif ast_type == 'Call':
-            arg = self.visit_Call(node)
-        elif ast_type == 'BinOp':
-            arg =  self.visit_BinOp(node)
+        arg = self.super.visit_Call_arg(node)
         return f"{node[CallArgKeys.Call_arg_TaintQualifer]} {node[CallArgKeys.Call_arg]} {arg}"
 
 

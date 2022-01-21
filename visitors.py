@@ -10,6 +10,23 @@ class Visitor:
     def __init__(self, ast):
         self.ast = ast
 
+
+
+    def visit_ast(self):
+        return self.visit_Module(self.ast)
+
+
+    def visit_Module(self, node):
+        """
+        :param node: {
+            'ast_type': 'Module',
+            'body': [...]
+        }
+        :return:
+        """
+        return self.visit_body(node['body'])
+
+
     def visit_body(self, nodes):
         visits = list()
         for node in nodes:
@@ -24,15 +41,6 @@ class Visitor:
                 visits.append(self.visit_If(node))
         return visits
 
-    def visit_operand(self, node):
-        return {
-            'Expr': self.visit_Expr,
-            'Call': self.visit_Call,
-            'Name': self.visit_Name,
-            'BinOp': self.visit_BinOp,
-            'Str': self.visit_Str,
-            'Num': self.visit_Num
-        }[node['ast_type']](node)
 
 
     def visit_ops(self, node):
@@ -48,28 +56,6 @@ class Visitor:
             elif ast_type == 'Lt':
                 ops.append(self.visit_Lt(node))
         return ops
-
-
-    def visit_Assign_targets(self, node):
-        return list(self.visit_Name(node) for node in node['targets'])
-
-    def visit_Assign_value(self, node):
-        return self.visit_expression(node['value'])
-
-    def visit_Call_func(self, node):
-        """
-        :param node: {'ast_type': 'Name',
-                      'col_offset': 2,
-                      'ctx': {'ast_type': 'Load'},
-                      'id': 'c',
-                      'lineno': 2}
-        :return:
-        """
-        return self.visit_Name(node['func'])
-
-
-    def visit_Call_args(self, node):
-        return list(self.visit_expression(node) for node in node['args'])
 
 
     def visit_test(self, node):
@@ -88,9 +74,7 @@ class Visitor:
         :param node:
         :return:
         """
-
         ast_type = node['ast_type']
-        # print(ast_type)
         if ast_type == 'Call':
             expression = self.visit_Call(node)
         elif ast_type == 'BinOp':
@@ -104,28 +88,67 @@ class Visitor:
         return expression
 
 
-    def visit_ast(self):
-        return self.visit_Module(self.ast)
+    def visit_Assign_target(self, node):
+        return self.visit_Name(node)
 
 
-    def visit_Module(self, node):
-        """
-        :param node: {
-            'ast_type': 'Module',
-            'body': [...]
-        }
-        :return:
-        """
-        return self.visit_body(node['body'])
+    def visit_Assign_targets(self, nodes):
+        return tuple(self.visit_Assign_target(node) for node in nodes)
+
+
+    def visit_Assign_value(self, node):
+        ast_type = node['ast_type']
+        if ast_type == 'Str':
+            return self.visit_Str(node)
+        elif ast_type == 'Num':
+            return self.visit_Num(node)
+        elif ast_type == 'Name':
+            return self.visit_Name(node)
+        elif ast_type == 'Call':
+            return self.visit_Call(node)
+        elif ast_type == 'BinOp':
+            return self.visit_BinOp(node)
+
 
     def visit_Assign(self, node):
         """
         :param node:
         :return:
         """
-        targets = self.visit_Assign_targets(node)
-        value = self.visit_Assign_value(node)
+        targets = self.visit_Assign_targets(node['targets'])
+        value = self.visit_Assign_value(node['value'])
         return targets, value
+
+
+    def visit_Call_func(self, node):
+        """
+        :param node: {'ast_type': 'Name',
+                      'col_offset': 2,
+                      'ctx': {'ast_type': 'Load'},
+                      'id': 'c',
+                      'lineno': 2}
+        :return:
+        """
+        return self.visit_Name(node)
+
+
+    def visit_Call_arg(self, node):
+        ast_type = node['ast_type']
+        if ast_type == 'Str':
+            arg = self.visit_Str(node)
+        elif ast_type == 'Num':
+            arg = self.visit_Num(node)
+        elif ast_type == 'Name':
+            arg = self.visit_Name(node)
+        elif ast_type == 'Call':
+            arg = self.visit_Call(node)
+        elif ast_type == 'BinOp':
+            arg =  self.visit_BinOp(node)
+        return arg
+
+
+    def visit_Call_args(self, nodes):
+        return list(self.visit_Call_arg(node) for node in nodes)
 
 
     def visit_Call(self, node):
@@ -146,9 +169,9 @@ class Visitor:
             }
         :return:
         """
-        func = self.visit_Call_func(node)
+        func = self.visit_Call_func(node['func'])
         
-        args = self.visit_Call_args(node)
+        args = self.visit_Call_args(node['args'])
 
         return func, args
 
@@ -163,19 +186,43 @@ class Visitor:
         return value
 
 
+    def visit_operand(self, node):
+        return {
+            # 'Expr': self.visit_Expr,
+            'Call': self.visit_Call,
+            'Name': self.visit_Name,
+            'BinOp': self.visit_BinOp,
+            'Str': self.visit_Str,
+            'Num': self.visit_Num
+        }[node['ast_type']](node)
+
+
+    def visit_BinOp_operand(self, node):
+        ast_type = node['ast_type']
+        if ast_type == 'Str':
+            return self.visit_Str(node)
+        elif ast_type == 'Num':
+            return self.visit_Num(node)
+        elif ast_type == 'Name':
+            return self.visit_Name(node)
+        elif ast_type == 'Call':
+            return self.visit_Call(node)
+        elif ast_type == 'BinOp':
+            return self.visit_BinOp(node)
+
     def visit_BinOp(self, node):
         """
         :param node:
         :return:
         """
-        left = self.visit_operand(node['left'])
+        left = self.visit_BinOp_operand(node['left'])
 
         op = {
             'Add': self.visit_Add,
             'Sub': self.visit_Sub
         }[node['op']['ast_type']](node['op'])
         
-        right = self.visit_operand(node['right'])
+        right = self.visit_BinOp_operand(node['right'])
 
         return (left, op, right)
 

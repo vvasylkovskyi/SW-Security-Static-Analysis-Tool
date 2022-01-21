@@ -21,12 +21,12 @@ from clean_ast_visitor import CleanAstVisitor
 from instantiation_visitor import InstantiationVisitor
 from tf_visitor import TaintedFlowVisitor
 from tf_src_visitor import TaintedFlowSrcVisitor
-
-# from constraints_visitor import visit_node as constraints_visit_node
+from constraints_visitor import ConstraintsVisitor
 
 
 def make_vulnerability(vulnerability, source, sink, unsanitized_flows="yes", sanitized_flows=[]):
     return {"vulnerability": vulnerability, "source": source, "sink": sink, "unsanitized flows": unsanitized_flows, "sanitized flows": sanitized_flows}
+
 
 def report(context, obj):
     print()
@@ -35,6 +35,7 @@ def report(context, obj):
         print(obj)
     else:
         pprint(obj)
+
 
 def main_experimental(ast, patterns):
 
@@ -59,20 +60,23 @@ def main_experimental(ast, patterns):
         tfv = TaintedFlowVisitor(ast)
         tfv.visit_ast() #assign taint qualifiers
 
-        report("AST:", ast)
+        # report("AST:", ast)
 
-        report("LABELS:", tfv.labels)
-
+        # report("LABELS:", tfv.labels)
 
         report("SOURCE WITH TYPE QUALIFIERS:", TaintedFlowSrcVisitor(ast).visit_ast())
 
-        # constraints = list()
-        # visit_with_pattern(ast, pattern, constraints_visit_node, constraints=constraints, labels_map=dict(), **pattern)
-        #
-        # pprint(constraints, width=10)
-        # report("CONSTRAINTS:", "\n".join(map(repr, sorted(set(constraints)))))
+        cv = ConstraintsVisitor(ast)
+        cv.visit_ast() #create constraints
+
+        report("CONSTRAINTS:", cv.constraints)
+
+        # pprint(cv.constraints, width=10)
+        # report("CONSTRAINTS:", "\n".join(map(repr, sorted(set(cv.constraints)))))
+
         # # print(f"please solve constraints to detect illegal flows")
 
+        return cv.constraints
 
 def main(ast, patterns):
     main_experimental(ast, patterns)

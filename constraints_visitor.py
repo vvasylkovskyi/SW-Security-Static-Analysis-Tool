@@ -1,6 +1,7 @@
-from collections import defaultdict, namedtuple
-from utilities import greek_letters_lowercase
-from tf_visitor import AssignmentContext
+from collections import namedtuple
+
+from visitors import Visitor
+from tf_visitor import TaintQualifer, CallArgKeys
 
 """
 x = y -> q_y <= q_x
@@ -10,285 +11,87 @@ Constraint = namedtuple("Constraint", ("line", "lhs_tq", "lhs_id", "rhs_tq", "rh
 Constraint.__repr__ = lambda s:f"{s.line:>2}: {s.lhs_tq} <= {s.rhs_tq}"
 
 
-class TypeQualifers:
-    TAINTED = "tainted"
-    UNTAINTED = "untainted"
-    labels = greek_letters_lowercase
+class ConstraintsVisitor(Visitor):
+
+    def __init__(self, ast):
+        super(ConstraintsVisitor, self).__init__(ast)
+        self.super = super(ConstraintsVisitor, self)
+        self._constraints = list()
 
 
-def novisit(node, **kwargs):
-    raise NotImplementedError(f"no visitor implemented for {node['ast_type']}")
+    @property
+    def constraints(self):
+        return self._constraints
 
 
-def visit_node(node, **kwargs):
-    # print(node);print()
-    # print(kwargs["constraints"])
-    return ast_type_visitors[node['ast_type']](node, **kwargs)
+    def visit_Assign_target(self, node):
+        return (node[TaintQualifer.__name__], self.super.visit_Name(node))
 
 
-def visit_nodes(nodes, **kwargs):
-    return tuple(ast_type_visitors[e['ast_type']](e, **kwargs) for e in nodes)
-
-
-def visit_Module(node, **kwargs):
-    """
-    :param node: {
-        'ast_type': 'Module',
-        'body': [...]
-    }
-    :return:
-    """
-    # print(kwargs)
-    kwargs.update(dict(indentation_level=0, labels=filter(None, greek_letters_lowercase)))
-    visit_nodes(node['body'], **kwargs)
-
-
-def visit_Assign(node, **kwargs):
-    """
-    :param node:
-    :return:
-    """
-    target_type_qualifier, target_id = visit_nodes(node['targets'], **kwargs)[0] #assume1
-    kwargs["assignment_context"] = (target_type_qualifier, target_id) #for binops
-    value = visit_node(node['value'], **kwargs)
-    del kwargs["assignment_context"]
-
-
-def visit_Name(node, **kwargs):
-    """
-    :param node: {
-        'ast_type': 'Name',
-        'col_offset': 2,
-        'ctx': {'ast_type': 'Load'},
-        'id': 'b',
-        'lineno': 4
-    }
-    :return:
-    """
-    # alpha node['id']
-    # print(kwargs)
-    name = node['id']
-    if name in kwargs["labels_map"]:
-        type_qualifier = kwargs["labels_map"][name]
-    else:
-        if name in kwargs["sources"]:
-            type_qualifier = TypeQualifers.TAINTED
-        elif name in kwargs["sanitizers"]:
-            type_qualifier = TypeQualifers.UNTAINTED
-        elif name in kwargs["sinks"]:
-            type_qualifier = TypeQualifers.UNTAINTED  # sink can be a variable or a function, untainted might refer to the variabl or to the arguments of the function
-        elif "assignment_context" in kwargs:
-            type_qualifier = TypeQualifers.TAINTED #uninstantiated variable...
+    def visit_BinOp_operand(self, node):
+        if node['ast_type'] == 'BinOp':
+            return self.visit_BinOp_operand(node['left']) + self.visit_BinOp_operand(node['right'])
         else:
-            type_qualifier = next(kwargs["labels"])
-        kwargs["labels_map"][name] = type_qualifier
-
-    if "assignment_context" in kwargs:
-        kwargs["constraints"].append(Constraint(node["lineno"], type_qualifier, name, *kwargs["assignment_context"]))
-
-    # print(type_qualifier, name)
-    return type_qualifier, name
+            return self.super.visit_BinOp_operand(node)
 
 
-def visit_Str(node, **kwargs):
-    """
-    :param node: {'ast_type': 'Str', 'col_offset': 2, 'lineno': 1, 's': ''}
-    :return:
-    """
-    kwargs["labels_map"][node['s']] = TypeQualifers.UNTAINTED
-
-    if "assignment_context" in kwargs:
-        kwargs["constraints"].append(Constraint(node["lineno"], TypeQualifers.UNTAINTED, node["s"], *kwargs["assignment_context"]))
-
-    return TypeQualifers.UNTAINTED, node['s']
+    def visit_Assign_value(self, node):
+        if node['ast_type'] == 'BinOp':
+            return self.visit_BinOp_operand(node['left']) + self.visit_BinOp_operand(node['right'])
+        else:
+            return self.super.visit_Assign_value(node)
 
 
-def visit_Call(node, **kwargs):
-    """
-    :param node:
-        {'args': [],
-         'ast_type': 'Call',
-         'col_offset': 2,
-         'func': {'ast_type': 'Name',
-                  'col_offset': 2,
-                  'ctx': {'ast_type': 'Load'},
-                  'id': 'c',w
-                  'lineno': 2},
-         'keywords': [],
-         'kwargs': None,
-         'lineno': 2,
-         'starargs': None
-        }
-    :return:
-    """
-    func_tq, func_id = visit_node(node['func'], **kwargs)
-    arg_type_qualifier = TypeQualifers.UNTAINTED if func_id in kwargs['sinks'] else TypeQualifers.TAINTED
-    argc = len(node['args'])
-    for i in range(argc):
-        kwargs["assignment_context"]=(arg_type_qualifier, f"{func_id}_arg{i}")
-        visit_node(node['args'][i], **kwargs) #to work for an argument which is a BinOp
-        del kwargs["assignment_context"]
-    # for i,(arg_tq, arg_name) in enumerate(args):
-    #     kwargs["constraints"].append(Constraint(node['lineno'], arg_tq, arg_name, arg_type_qualifier, f"{func_id}_arg{i}"))
-
-    return func_tq, func_id
-
-def visit_Expr(node, **kwargs):
-    """
-    :param node:
-    :return:
-    """
-    visit_node(node['value'], **kwargs)
+    def visit_Assign(self, node):
+        targets = self.visit_Assign_targets(node['targets'])
+        # if len(targets) > 1: ...
+        target_taint_qualifier, target_id = targets[0]  # assume1 for now, how to treat value
+        values = self.visit_Assign_value(node['value'])
+        for taint_qualifier,name in values:
+            constraint = Constraint(node["lineno"], taint_qualifier, name, target_taint_qualifier, target_id)
+            self.constraints.append(constraint)
 
 
-def visit_BinOp(node, **kwargs):
-    """
-    :param node:
-    :return:
-    """
-    #TODO what is needed here?
-    left = visit_node(node['left'], **kwargs)
-    right = visit_node(node['right'], **kwargs)
-
-def visit_Compare(node, **kwargs):
-    """
-    :param node:
-    :return:
-    """
-    left = visit_node(node['left'], **kwargs)
-    comparators = visit_nodes(node['comparators'], **kwargs)
-    ops = visit_nodes(node['ops'], **kwargs)
+    def visit_Call_arg(self, node):
+        if node['ast_type'] == 'BinOp':
+            return self.visit_BinOp_operand(node['left']) + self.visit_BinOp_operand(node['right'])
+        else:
+            return self.super.visit_Call_arg(node)
 
 
-def visit_If(node, **kwargs):
-    """
-    :param node:
-    :return:
-    """
-    # test = visit_node(node['test'], **kwargs)
-    body = visit_nodes(node['body'], **kwargs)
-    orelse = visit_nodes(node['orelse'], **kwargs)
+    def visit_Call_arg_as_parameter(self, node):
+        return (node[CallArgKeys.Call_arg_TaintQualifer], node[CallArgKeys.Call_arg])
 
 
-
-def visit_While(node, **kwargs):
-    """
-    :param node:
-    :return:
-    """
-    # test = visit_node(node['test'], **kwargs)
-    body = visit_nodes(node['body'], **kwargs)
-
-
-def visit_Break(node, **kwargs):
-    """
-    :param node:
-    :return:
-    """
-    return
+    def visit_Call_args(self, nodes, lineno):
+        for node in nodes:
+            arg_taint_qualifier, arg = self.visit_Call_arg_as_parameter(node)
+            values = self.visit_Call_arg(node) #>1 if BinOp
+            for taint_qualifier, name in values:
+                constraint = Constraint(lineno, taint_qualifier, name, arg_taint_qualifier, arg)
+                self.constraints.append(constraint)
 
 
-def visit_Add(node, **kwargs):
-    """
-    :param node:
-    :return:
-    """
-    return
+    def visit_Call_func(self, node):
+        return (node['lineno'], node[TaintQualifer.__name__], self.super.visit_Name(node))
 
 
-def visit_Num(node, **kwargs):
-    """
-    :param node:
-    :return:
-    """
-    return visit_node(node['n'], lineno=node['lineno'], **kwargs)
+    def visit_Call(self, node):
+        lineno, taint_qualifier, name = self.visit_Call_func(node['func'])
+        self.visit_Call_args(node['args'], lineno)
+        return ((taint_qualifier, name), )
 
 
-def visit_NotEq(node, **kwargs):
-    """
-    :param node:
-    :return:
-    """
-    return
+    def visit_Name(self, node):
+        taint_qualifier, name = node[TaintQualifer.__name__], self.super.visit_Name(node)
+        return ((taint_qualifier, name), )
 
 
-def visit_Eq(node, **kwargs):
-    """
-    :param node:
-    :return:
-    """
-    return
+    def visit_Str(self, node):
+        taint_qualifier, s = node[TaintQualifer.__name__], self.super.visit_Str(node)
+        return ((taint_qualifier, s), )
 
 
-def visit_int(node, **kwargs):
-    """
-    :param node:
-    :return:
-    """
-    kwargs["labels_map"][node['n_str']] = TypeQualifers.UNTAINTED
-
-    if "assignment_context" in kwargs:
-        kwargs["constraints"].append(Constraint(kwargs["lineno"], TypeQualifers.UNTAINTED, node["n_str"], *kwargs["assignment_context"]))
-
-    return TypeQualifers.UNTAINTED, node["n_str"]
-
-
-def visit_Gt(node, **kwargs):
-    """
-    :param node:
-    :return:
-    """
-    return
-
-
-def visit_Lt(node, **kwargs):
-    """
-    :param node:
-    :return:
-    """
-    return
-
-def visit_Load(node, **kwargs):
-    """
-    :param node:
-    :return:
-    """
-    raise NotImplementedError(f"visitor for ast_type Load not implemented")
-
-
-def visit_Store(node, **kwargs):
-    """
-    :param node:
-    :return:
-    """
-    # key = "k"
-    # return node[key]
-    raise NotImplementedError(f"visitor for ast_type Store not implemented")
-
-
-ast_type_visitors = defaultdict(lambda: novisit)
-
-# not really until really
-implemented_ast_type_visitors = {
-    'Store': visit_Store,
-    'Compare': visit_Compare,
-    'If': visit_If,
-    'NotEq': visit_NotEq,
-    'Eq': visit_Eq,
-    'Load': visit_Load,
-    'Expr': visit_Expr,
-    'Str': visit_Str,
-    'Break': visit_Break,
-    'Call': visit_Call,
-    'Module': visit_Module,
-    'BinOp': visit_BinOp,
-    'Name': visit_Name,
-    'While': visit_While,
-    'Lt': visit_Lt,
-    'Add': visit_Add,
-    'Num': visit_Num,
-    'Gt': visit_Gt,
-    'int': visit_int,
-    'Assign': visit_Assign,
-}
-ast_type_visitors.update(implemented_ast_type_visitors)
+    def visit_Num(self, node):
+        taint_qualifier, n = node[TaintQualifer.__name__], node['n']
+        return ((taint_qualifier, n),) #homogenize return values, BinOp's fault
