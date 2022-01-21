@@ -24,13 +24,16 @@ class ConstraintsResolver:
             return right_hand_side
         elif self.is_one_of_the_type_qualifiers(right_hand_side) and not self.is_one_of_the_type_qualifiers(left_hand_side):
             return left_hand_side
-        return "Oups. No greek letter"
+        print("Oups. No greek letter, maybe we can reduce already")
+        return None
 
     def find_pattern_index(self, source, src_with_type_qualifiers, constraints):
+        print("SOURCE: ", source)
         taint_type_qualifier = TypeQualifers.TAINTED
         tainted_source = taint_type_qualifier + ' ' + source
         for index, src in enumerate(src_with_type_qualifiers):
             if tainted_source in src:
+                print("YE index: ", index)
                 index_in_src = index + 1
                 break
         last_constraint_containing_the_tained_source_index = 0
@@ -48,11 +51,6 @@ class ConstraintsResolver:
         if left_hand_side == TypeQualifers.TAINTED and right_hand_side == TypeQualifers.UNTAINTED:
             return True
         return False
-
-    def debug_print_lhs_and_rhs(constraint):
-        print("constraint: ", constraint)
-        print("Left hand side: ", constraint[1])
-        print("Right hand side: ", constraint[3])
 
     def is_idempotent_equation(self, constraint):
         if (constraint[1] == TypeQualifers.UNTAINTED and constraint[3] == TypeQualifers.TAINTED
@@ -128,17 +126,7 @@ class ConstraintsResolver:
             return False
 
     def resolve_equation(self, resolution, new_constraint, source_greek_letter):
-        print("------Constraint test:------")
-        print("Constraint line: ", new_constraint.line)
-        print("Constraint lhs: ", new_constraint.lhs_tq)
-        print("Constraint lhs id : ", new_constraint.lhs_id)
-        print("Constraint rhs id : ", new_constraint.rhs_id)
-        print("Constraint rhs id : ", new_constraint.rhs_id)
-
         resolution_lhs = resolution.lhs_tq
-        resolution_rhs = resolution.rhs_tq
-
-        new_constraint_lhs = new_constraint.lhs_tq
         new_constraint_rhs = new_constraint.rhs_tq
 
         if self.is_idempotent_equation(new_constraint):
@@ -176,7 +164,18 @@ class ConstraintsResolver:
         lhs = greek_letter_constraint.lhs_tq
         return lhs == TypeQualifers.TAINTED
 
+    def is_constraints_contain_illegal_flow(self, constraints):
+        for constraint in constraints:
+            if self.is_illegal_flow(constraint):
+                return True
+        return False
+
     def has_vulnerability(self, source, sink, src_with_type_qualifiers, constraints):
+
+        # Run and check if contains vulnerability without resolving constraints
+        if self.is_constraints_contain_illegal_flow(constraints):
+            return True
+
         tained_source_index = self.find_pattern_index(
             source, src_with_type_qualifiers, constraints)
         sink_index = self.find_pattern_index(
@@ -193,10 +192,12 @@ class ConstraintsResolver:
         # print("sink index: ", sink_index)
         # debug_print_lhs_and_rhs(first_constraint)
 
+        print("TEST:", tained_source_index)
+
         source_greek_letter = self.find_greek_letter_in_constraint(
             source_constraint)
 
-        print("Source greek letter: ", source_greek_letter)
+        print("Source greek letter: ", sink_index)
         resolution = first_constraint
 
         # First Check
