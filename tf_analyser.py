@@ -93,7 +93,7 @@ def main_experimental(file_path, ast, patterns):
         constraints_resolver = ConstraintsResolver()
 
         vulnerability = constraints_resolver.resolve_constraints_and_find_vulnerabilties(
-            sorted(set(constraints)), src_with_type_qualifiers, pattern)
+            sorted(set(constraints)), pattern)
 
         if vulnerability:
             vulnerabilities = [*vulnerabilities, *vulnerability]

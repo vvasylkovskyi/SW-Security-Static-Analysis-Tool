@@ -1,6 +1,6 @@
+from queue import Empty
 from tf_visitor import TypeQualifers
 from constraints_visitor import Constraint
-# Constraint = namedtuple("Constraint", ("line", "lhs_tq", "lhs_id", "rhs_tq", "rhs_id"))
 
 
 class ConstraintsResolver:
@@ -13,34 +13,6 @@ class ConstraintsResolver:
     def remove_equation_from_the_queue(self, equation):
         print("REMOVE QUEUE: ", self.queue_of_equations)
         self.queue_of_equations.remove(equation)
-
-    def is_one_of_the_type_qualifiers(self, value):
-        return value == TypeQualifers.TAINTED or value == TypeQualifers.UNTAINTED
-
-    def find_greek_letter_in_constraint(self, constraint):
-        left_hand_side = constraint.lhs_tq
-        right_hand_side = constraint.rhs_tq
-        if self.is_one_of_the_type_qualifiers(left_hand_side) and not self.is_one_of_the_type_qualifiers(right_hand_side):
-            return right_hand_side
-        elif self.is_one_of_the_type_qualifiers(right_hand_side) and not self.is_one_of_the_type_qualifiers(left_hand_side):
-            return left_hand_side
-        print("Oups. No greek letter, maybe we can reduce already")
-        return None
-
-    def find_pattern_index(self, source, src_with_type_qualifiers, constraints):
-        print("SOURCE: ", source)
-        taint_type_qualifier = TypeQualifers.TAINTED
-        tainted_source = taint_type_qualifier + ' ' + source
-        for index, src in enumerate(src_with_type_qualifiers):
-            if tainted_source in src:
-                print("YE index: ", index)
-                index_in_src = index + 1
-                break
-        last_constraint_containing_the_tained_source_index = 0
-        for index, constraint in enumerate(constraints):
-            if constraint.line == index_in_src:
-                last_constraint_containing_the_tained_source_index = index
-        return last_constraint_containing_the_tained_source_index
 
     def is_illegal_flow(self, constraint):
         # if tainted <= untainted
@@ -59,51 +31,17 @@ class ConstraintsResolver:
             return True
         return False
 
-    def get_next_best_constraint(self, resolution, new_constraint, source_greek_letter):
-        # No reduction. return the constraint with the source, if any
-        if self.contains_source(resolution, source_greek_letter) and self.contains_source(new_constraint, source_greek_letter):
-            # Both constraints contain source. Choose one that is tainted, if any
-            print("HERE")
-            if self.is_tainted(resolution) and self.is_tainted(new_constraint):
-                # if both are tainted, choose the new one (to respect the order of executions)
-                return new_constraint
-            elif self.is_tainted(resolution) and not self.is_tainted(new_constraint):
-                return resolution
-            elif not self.is_tainted(resolution) and self.is_tainted(new_constraint):
-                return new_constraint
-            # If none is tained, then move on to the next constraint
-            return new_constraint
-        elif self.contains_source(resolution, source_greek_letter) and not self.contains_source(new_constraint, source_greek_letter):
-            print("Yo-1")
-            if not self.is_idempotent_equation(new_constraint) and new_constraint not in self.queue_of_equations:
-                print("IT IS YEE")
-                self.add_to_queue_of_equations(new_constraint)
-
-            # Could not reduce, but maybe there is an equation in the queue that can be resolved
-            # resolution = self.try_to_reduce_equation_with_queued_equations(
-            #     resolution, source_greek_letter)
+    def get_next_best_constraint(self, resolution, new_constraint):
+        if self.is_idempotent_equation(new_constraint):
             return resolution
-        elif not self.contains_source(resolution, source_greek_letter) and self.contains_source(new_constraint, source_greek_letter):
-            print("Yo-2")
-            return new_constraint
-        else:
-            # If none is tained and none is source, then just move on to the next constraint
-            print("Yo-3")
-            return new_constraint
+        if not self.is_idempotent_equation(new_constraint) and new_constraint not in self.queue_of_equations:
+            print("IT IS YEE")
+            self.add_to_queue_of_equations(new_constraint)
 
-    def try_to_reduce_equation_with_queued_equations(self, prev_resolution, source_greek_letter):
-        print("Attempting reduction")
-        resolution = prev_resolution
-        for constraint in self.queue_of_equations:
-            print("YO")
-            resolution = self.reduce_constraints(
-                resolution, constraint, source_greek_letter)
-            if resolution != prev_resolution:
-                self.remove_equation_from_the_queue(constraint)
         return resolution
 
     # TODO. Not working yet.
-    def check_if_source_is_being_sanitized(self, constraint, source_greek_letter):
+    def check_if_source_is_being_sanitized(self, constraint):
         print("y")
         constraint_rhs = constraint.rhs_tq
         if constraint_rhs == TypeQualifers.TAINTED:
@@ -125,79 +63,40 @@ class ConstraintsResolver:
         else:
             return False
 
-    def resolve_equation(self, resolution, new_constraint, source_greek_letter):
-        resolution_lhs = resolution.lhs_tq
-        new_constraint_rhs = new_constraint.rhs_tq
-
+    def resolve_equation(self, resolution, new_constraint):
         if self.is_idempotent_equation(new_constraint):
             print("HERE")
-            return resolution
-
-        # Reduce the equation by removing common parts
-
-        if self.contains_source(resolution, source_greek_letter) and self.contains_source(new_constraint, source_greek_letter):
-            # Here, we are about to reduce into illegal flow
-            if resolution_lhs == TypeQualifers.TAINTED and new_constraint_rhs == TypeQualifers.UNTAINTED:
-                return self.try_simplify_equation(resolution, new_constraint)
             return resolution
 
         if self.try_simplify_equation(resolution, new_constraint):
             return self.try_simplify_equation(resolution, new_constraint)
         else:
-            return self.get_next_best_constraint(resolution, new_constraint, source_greek_letter)
-
-    def contains_source(self, constraint, source_greek_letter):
-        lhs = constraint.lhs_tq
-        rhs = constraint.rhs_tq
-        return lhs == source_greek_letter or rhs == source_greek_letter
+            return self.get_next_best_constraint(resolution, new_constraint)
 
     def debug_print_compare_constraints(self, resolution, new_constraint):
         print("---------------")
         print("Resolution: ", resolution)
         print("New Constraint: ", new_constraint)
 
-    def reduce_constraints(self, resolution, new_constraint, source_greek_letter):
+    def reduce_constraints(self, resolution, new_constraint):
         self.debug_print_compare_constraints(resolution, new_constraint)
-        return self.resolve_equation(resolution, new_constraint, source_greek_letter)
-
-    def is_tainted(self, greek_letter_constraint):
-        lhs = greek_letter_constraint.lhs_tq
-        return lhs == TypeQualifers.TAINTED
+        return self.resolve_equation(resolution, new_constraint)
 
     def is_constraints_contain_illegal_flow(self, constraints):
         for constraint in constraints:
             if self.is_illegal_flow(constraint):
+                print("Is illegal flow!")
                 return True
         return False
 
-    def has_vulnerability(self, source, sink, src_with_type_qualifiers, constraints):
+    def has_vulnerability(self, constraints):
 
         # Run and check if contains vulnerability without resolving constraints
         if self.is_constraints_contain_illegal_flow(constraints):
             return True
 
-        tained_source_index = self.find_pattern_index(
-            source, src_with_type_qualifiers, constraints)
-        sink_index = self.find_pattern_index(
-            sink, src_with_type_qualifiers, constraints)
-
         first_constraint = constraints[0]  # Starting always from zero
-        # print("[Index: 0 ]", "Constraint: ",
-        #       first_constraint)
-        source_constraint = constraints[tained_source_index]
-        # The Height is always equal to the index of the sink
-        constraints_height = sink_index
-        # debug_print_lhs_and_rhs(first_constraint)  # Starts with tained
 
-        # print("sink index: ", sink_index)
-        # debug_print_lhs_and_rhs(first_constraint)
-
-        print("TEST:", tained_source_index)
-
-        source_greek_letter = self.find_greek_letter_in_constraint(
-            source_constraint)
-
-        print("Source greek letter: ", sink_index)
         resolution = first_constraint
 
         # First Check
@@ -208,7 +107,7 @@ class ConstraintsResolver:
         # Run the constraints and reduce them until we reach the illegal flow,
         # or until we finish the algorithm. If at the end of the algorithm there is no illegal flow, then no vulnerability exists
         constraint_index = 0
-        while constraints_height > constraint_index:
+        while len(constraints) - 1 > constraint_index:
             constraint_index += 1
             print("[Index:", constraint_index, "] Constraint: ",
                   constraints[constraint_index])
@@ -218,23 +117,41 @@ class ConstraintsResolver:
                 return True
 
             resolution = self.reduce_constraints(
-                resolution, constraints[constraint_index], source_greek_letter)
+                resolution, constraints[constraint_index])
 
             if self.is_illegal_flow(resolution):
                 print("Is illegal flow!")
                 return True
 
+        print("QUEUE contents: ", self.queue_of_equations)
+
+        # Empty the queue
+        copy_queue = self.queue_of_equations
+
+        if self.queue_of_equations is Empty:
+            return False
+
+        for constraint in copy_queue:
+            if self.queue_of_equations is Empty:
+                break
+
+            if constraint in self.queue_of_equations:
+                resolution = self.reduce_constraints(resolution, constraint)
+                self.remove_equation_from_the_queue(constraint)
+
+            if self.is_illegal_flow(resolution):
+                print("Is illegal flow!")
+                return True
         return False
 
-    def resolve_constraints_and_find_vulnerabilties(self, constraints, src_with_type_qualifiers, pattern):
+    def resolve_constraints_and_find_vulnerabilties(self, constraints, pattern):
         sources = pattern['sources']
         sinks = pattern['sinks']
         name = pattern['vulnerability']
         vulnerabilities = list()
         for source in sources:
             for sink in sinks:
-                if self.has_vulnerability(
-                        source, sink, src_with_type_qualifiers, constraints):
+                if self.has_vulnerability(constraints):
                     vulnerabilities_index = len(vulnerabilities) + 1
                     vulnerability_name = name + "_" + vulnerabilities_index.__str__()
                     vulnerability = (vulnerability_name, source, sink)
