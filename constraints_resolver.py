@@ -20,10 +20,11 @@ class ConstraintsResolver:
     def find_greek_letter_in_constraint(self, constraint):
         left_hand_side = constraint.lhs_tq
         right_hand_side = constraint.rhs_tq
-        if self.is_one_of_the_type_qualifiers(left_hand_side):
+        if self.is_one_of_the_type_qualifiers(left_hand_side) and not self.is_one_of_the_type_qualifiers(right_hand_side):
             return right_hand_side
-        elif self.is_one_of_the_type_qualifiers(right_hand_side):
+        elif self.is_one_of_the_type_qualifiers(right_hand_side) and not self.is_one_of_the_type_qualifiers(left_hand_side):
             return left_hand_side
+        return "Oups. No greek letter"
 
     def find_pattern_index(self, source, src_with_type_qualifiers, constraints):
         taint_type_qualifier = TypeQualifers.TAINTED
