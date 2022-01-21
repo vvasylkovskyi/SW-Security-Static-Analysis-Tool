@@ -20,7 +20,25 @@ from tf_analysis import visit_with_pattern
 from src_visitor import visit_node as src_visit_node
 from tf_visitor import visit_node as tf_visit_node
 from constraints_visitor import visit_node as constraints_visit_node
-from constraints_resolver import resolve_constraints_and_find_vulnerabilties
+from constraints_resolver import ConstraintsResolver
+
+
+# def check_solution(file_path):
+#     print("Yo")
+#     my_solution_path = file_path.split(".", 1)[0]
+#     my_solution_path += '.output.json'
+#     print("MYU SOLUTION: ", my_solution_path)
+#     with open(my_solution_path) as f:
+#         my_solution_json = json.load(f)
+
+#     print("FIRST: ", sorted(my_solution_json))
+#     expected_solution_path = file_path.split("-", 1)[0]
+#     expected_solution_path += '-output.json'
+#     with open(expected_solution_path) as f:
+#         expected_solution_json = json.load(f)
+
+#     print("Is correct? ", sorted(my_solution_json)
+#           == sorted(expected_solution_json))
 
 
 def make_vulnerability(vulnerability, source, sink, unsanitized_flows="yes", sanitized_flows=[]):
@@ -54,6 +72,8 @@ def main_experimental(file_path, ast, patterns):
     print("\n".join(src))
     patterns = load_json(patterns)
     # print(patterns)
+
+    vulnerabilities = list()
     for pattern in patterns:
         print()
         print("PATTERN:")
@@ -70,11 +90,18 @@ def main_experimental(file_path, ast, patterns):
         print("CONSTRAINTS:")
         print("\n".join(map(repr, sorted(set(constraints)))))
         print("-----")
+        constraints_resolver = ConstraintsResolver()
 
-        vulnerabilities = resolve_constraints_and_find_vulnerabilties(
+        vulnerability = constraints_resolver.resolve_constraints_and_find_vulnerabilties(
             sorted(set(constraints)), src_with_type_qualifiers, pattern)
 
-        print_vulnerabilities_to_json(vulnerabilities, file_path)
+        if vulnerability:
+            vulnerabilities = [*vulnerabilities, *vulnerability]
+
+    print("Vulnerabilities: ", vulnerabilities)
+    print_vulnerabilities_to_json(vulnerabilities, file_path)
+
+    # check_solution(file_path)
 
 
 def main(file_path, ast, patterns):
