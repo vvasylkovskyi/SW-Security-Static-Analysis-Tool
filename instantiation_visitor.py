@@ -1,5 +1,3 @@
-from enum import Enum
-
 from visitors import Visitor
 
 class FlowCategory:
@@ -86,7 +84,7 @@ class InstantiationVisitor(Visitor):
         elif ast_type == 'Name':
             self.visit_Name_for_value(node)
 
-#TODO needed?
+
     def visit_BinOp_operand_as_Call_arg(self, node, func_flow_category):
         node[CallArgKeys.Call_arg_CallFlowCategory] = func_flow_category
         ast_type = node['ast_type']
@@ -100,6 +98,8 @@ class InstantiationVisitor(Visitor):
             self.visit_Str(node)
         elif ast_type == 'Num':
             self.visit_Num(node)
+        elif ast_type == 'Constant':
+            return self.visit_Constant(node)
 
 
     def visit_BinOp_as_Call_arg(self, node, func_flow_category):
@@ -107,22 +107,30 @@ class InstantiationVisitor(Visitor):
         self.visit_BinOp_operand_as_Call_arg(node['right'], func_flow_category)
 
 
+    def visit_Call_arg(self, node, arg_name, func_flow_category):
+
+        node[CallArgKeys.Call_arg] = arg_name
+        node[CallArgKeys.Call_arg_CallFlowCategory] = func_flow_category
+
+        node_ast_type = node['ast_type']
+        if node_ast_type == 'Name':
+            self.visit_Name_for_value(node)
+        elif node_ast_type == 'Call':
+            self.visit_Call(node)
+        elif node_ast_type == 'BinOp':
+            self.visit_BinOp_as_Call_arg(node, func_flow_category)
+        elif node_ast_type == 'Constant':
+            return self.visit_Constant(node)
+        elif node_ast_type == 'Str':
+            self.visit_Str(node)
+        elif node_ast_type == 'Num':
+            self.visit_Num(node)
+
+
     def visit_Call_args(self, nodes, func_name, func_flow_category):
         for i, node in enumerate(nodes):
-            arg = f"{func_name}_arg{i}"
-            node[CallArgKeys.Call_arg] = arg
-            node[CallArgKeys.Call_arg_CallFlowCategory] = func_flow_category
-            node_ast_type = node['ast_type']
-            if node_ast_type == 'Name':
-                self.visit_Name_for_value(node)
-            elif node_ast_type == 'Call':
-                self.visit_Call(node)
-            elif node_ast_type == 'BinOp':
-                self.visit_BinOp_as_Call_arg(node, func_flow_category)
-            elif node_ast_type == 'Str':
-                self.visit_Str(node)
-            elif node_ast_type == 'Num':
-                self.visit_Num(node)
+            self.visit_Call_arg(node, f"{func_name}_arg{i}", func_flow_category)
+
 
     def visit_Call_func(self, node):
         name = self.visit_Name(node)
@@ -135,9 +143,15 @@ class InstantiationVisitor(Visitor):
         self.visit_Call_args(node['args'], name, flow_category)
 
 
-    def visit_Str(self, node):
+    def visit_Constant(self, node):
         node[FlowCategory.__name__] = FlowCategory.REGULAR
+
+
+    def visit_Str(self, node):
+        self.visit_Constant(node)
 
 
     def visit_Num(self, node):
-        node[FlowCategory.__name__] = FlowCategory.REGULAR
+        self.visit_Constant(node)
+
+

@@ -95,3 +95,8 @@ class ConstraintsVisitor(Visitor):
     def visit_Num(self, node):
         taint_qualifier, n = node[TaintQualifer.__name__], node['n']
         return ((taint_qualifier, n),) #homogenize return values, BinOp's fault
+
+
+    def visit_Constant(self, node):
+        taint_qualifier, v = node[TaintQualifer.__name__], self.super.visit_Constant(node)
+        return ((taint_qualifier, v), )

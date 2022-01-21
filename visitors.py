@@ -65,6 +65,7 @@ class Visitor:
             'Name': self.visit_Name,
             'BinOp': self.visit_BinOp,
             'Str': self.visit_Str,
+            'Constant': self.visit_Constant,
             'Num': self.visit_Num
         }[node['ast_type']](node)
 
@@ -85,6 +86,9 @@ class Visitor:
             expression = self.visit_Str(node)
         elif ast_type == 'Num':
             expression = self.visit_Num(node)
+        elif ast_type == 'Constant':
+            return self.visit_Constant(node)
+
         return expression
 
 
@@ -102,6 +106,8 @@ class Visitor:
             return self.visit_Str(node)
         elif ast_type == 'Num':
             return self.visit_Num(node)
+        elif ast_type == 'Constant':
+            return self.visit_Constant(node)
         elif ast_type == 'Name':
             return self.visit_Name(node)
         elif ast_type == 'Call':
@@ -138,12 +144,14 @@ class Visitor:
             arg = self.visit_Str(node)
         elif ast_type == 'Num':
             arg = self.visit_Num(node)
+        elif ast_type == 'Constant':
+            return self.visit_Constant(node)
         elif ast_type == 'Name':
             arg = self.visit_Name(node)
         elif ast_type == 'Call':
             arg = self.visit_Call(node)
         elif ast_type == 'BinOp':
-            arg =  self.visit_BinOp(node)
+            arg = self.visit_BinOp(node)
         return arg
 
 
@@ -193,7 +201,9 @@ class Visitor:
             'Name': self.visit_Name,
             'BinOp': self.visit_BinOp,
             'Str': self.visit_Str,
-            'Num': self.visit_Num
+            'Num': self.visit_Num,
+            'Constant': self.visit_Constant,
+
         }[node['ast_type']](node)
 
 
@@ -203,12 +213,15 @@ class Visitor:
             return self.visit_Str(node)
         elif ast_type == 'Num':
             return self.visit_Num(node)
+        elif ast_type == 'Constant':
+            return self.visit_Constant(node)
         elif ast_type == 'Name':
             return self.visit_Name(node)
         elif ast_type == 'Call':
             return self.visit_Call(node)
         elif ast_type == 'BinOp':
             return self.visit_BinOp(node)
+
 
     def visit_BinOp(self, node):
         """
@@ -274,6 +287,13 @@ class Visitor:
         :return:
         """
         return node['id']
+
+
+    def visit_Constant(self, node):
+        """
+        """
+        return repr(node['value'])
+
 
     def visit_Str(self, node):
         """

@@ -96,5 +96,9 @@ class TaintedFlowSrcVisitor(Visitor):
         return f"{node[TaintQualifer.__name__]} {node['n']}"
 
 
+    def visit_Constant(self, node):
+        return f"{node[TaintQualifer.__name__]} {self.super.visit_Constant(node)}"
+
+
     def visit_Break(self, node):
         return f"{self.indentation_level * Visitor.INDENTATION}{self.super.visit_Break(node)}"
