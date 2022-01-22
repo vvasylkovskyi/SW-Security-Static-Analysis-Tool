@@ -1,5 +1,7 @@
 from collections import namedtuple, defaultdict
 
+from ps_visitor import Keys as PSKeys
+from ssa_visitor import Keys as SSAKeys
 from visitors import Visitor
 from tf_visitor import TaintQualifer, CallArgKeys
 
@@ -11,12 +13,16 @@ Constraint = namedtuple("Constraint", ("line", "lhs_tq", "lhs_id", "rhs_tq", "rh
 Constraint.__repr__ = lambda s:f"{s.line:>2}: {s.lhs_tq} <= {s.rhs_tq}"
 
 
-class ConstraintsVisitor(Visitor):
+class Keys(PSKeys, SSAKeys):
+    pass
+
+class ConstraintsPathFlowSenstivityVisitor(Visitor):
 
     def __init__(self, ast):
-        super(ConstraintsVisitor, self).__init__(ast)
-        self.super = super(ConstraintsVisitor, self)
-        self._constraints = list()
+        super(ConstraintsPathFlowSenstivityVisitor, self).__init__(ast)
+        self.super = super(ConstraintsPathFlowSenstivityVisitor, self)
+        self._constraints = defaultdict(list)
+        self._scope = None
 
 
     @property
@@ -24,8 +30,13 @@ class ConstraintsVisitor(Visitor):
         return self._constraints
 
 
+    def visit_body_line(self, node):
+        self._scope = tuple(node[Keys.CONDITIONS])
+        return self.super.visit_body_line(node)
+
+
     def visit_Assign_target(self, node):
-        return (node[TaintQualifer.__name__], self.super.visit_Name(node))
+        return (node[TaintQualifer.__name__], self.visit_Name(node))
 
 
     def visit_BinOp_operand(self, node):
@@ -52,7 +63,7 @@ class ConstraintsVisitor(Visitor):
 
         for taint_qualifier,name in values:
             constraint = Constraint(node["lineno"], taint_qualifier, name, target_taint_qualifier, target_id)
-            self._constraints.append(constraint)
+            self._constraints[self._scope].append(constraint)
 
             # self._constraints_map[]
 
@@ -74,12 +85,11 @@ class ConstraintsVisitor(Visitor):
             values = self.visit_Call_arg(node) #>1 if BinOp
             for taint_qualifier, name in values:
                 constraint = Constraint(lineno, taint_qualifier, name, arg_taint_qualifier, arg)
-                self._constraints.append(constraint)
-
+                self._constraints[self._scope].append(constraint)
 
 
     def visit_Call_func(self, node):
-        return (node['lineno'], node[TaintQualifer.__name__], self.super.visit_Name(node))
+        return (node['lineno'], node[TaintQualifer.__name__], self.visit_Name(node))
 
 
     def visit_Call(self, node):
@@ -89,7 +99,7 @@ class ConstraintsVisitor(Visitor):
 
 
     def visit_Name(self, node):
-        taint_qualifier, name = node[TaintQualifer.__name__], self.super.visit_Name(node)
+        taint_qualifier, name = node[TaintQualifer.__name__], node[Keys.SSA_NAME]
         return ((taint_qualifier, name), )
 
 

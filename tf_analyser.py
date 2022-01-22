@@ -14,7 +14,12 @@ $ python tf_analyser.py <ast> <vulnerabilities>
 from pathlib import Path
 from pprint import pprint
 
+# from pointers_visitor import PointersVisitor
+from constraints_pf_sensitivity_visitor import ConstraintsPathFlowSenstivityVisitor
+from ps_visitor import PathSensitivityVisitor
+from scoped_ssa_visitor import ScopedSingleStaticAssignmentVisitor
 from utilities import load_json
+
 
 from src_visitor import SrcVisitor
 from clean_ast_visitor import CleanAstVisitor
@@ -22,6 +27,8 @@ from instantiation_visitor import InstantiationVisitor
 from tf_visitor import TaintedFlowVisitor
 from tf_src_visitor import TaintedFlowSrcVisitor
 from constraints_visitor import ConstraintsVisitor
+from ssa_visitor import SingleStaticAssignmentVisitor
+from ssa_src_visitor import SSASrcVisitor
 
 
 def report(context, obj):
@@ -42,7 +49,8 @@ def get_vulnerabilities(ast, pattern, constraints):
 
 
 def get_constraints(ast, pattern):
-    InstantiationVisitor(ast, **pattern).visit_ast()  # mutate pattern
+
+    InstantiationVisitor(ast, **pattern).visit_ast()  # mutate pattern, TODO arg names broken, move to before ssa?
 
     report("PATTERN:", pattern)
 
@@ -57,7 +65,8 @@ def get_constraints(ast, pattern):
 
     report("SOURCE WITH TYPE QUALIFIERS:", TaintedFlowSrcVisitor(ast).visit_ast())
 
-    cv = ConstraintsVisitor(ast)
+    # cv = ConstraintsVisitor(ast)
+    cv = ConstraintsPathFlowSenstivityVisitor(ast)
     cv.visit_ast()  # create constraints
 
     report("CONSTRAINTS:", cv.constraints)
@@ -78,6 +87,22 @@ def main_experimental(ast, patterns):
 
     CleanAstVisitor(ast).visit_ast()
 
+
+    psv = PathSensitivityVisitor(ast)
+    psv.visit_ast()
+    # report("PS_CONDITIONS:", psv.conditions)
+
+    ssav = ScopedSingleStaticAssignmentVisitor(ast)
+    ssav.visit_ast()
+
+    # report("SSA_VARIABLE:", ssav.ssa_variable_map)
+    # report("VARIABLE_SSA:", dict(ssav.variable_ssa_map))
+
+    source_ssa = SSASrcVisitor(ast).visit_ast()
+    # report("SOURCE_SSA:", source_ssa)
+
+    # report("AST:", ast) # check progress of visitors
+
     patterns = load_json(patterns)
 
     # report("PATTERNS:", patterns) #debug
@@ -96,8 +121,11 @@ def main_experimental(ast, patterns):
 
     return vulnerabilities
 
+
+
 def main(ast, patterns):
     main_experimental(ast, patterns)
+    # test_visitor_wip(ast, patterns)
 
 
 if __name__ == "__main__":

@@ -18,7 +18,34 @@ def get_ast_types(*asts):
 
     return ast_types
 
-def generate_visitors(ast_types, framework=False):
+
+def generate_visitor(ast_types, class_name):
+    t = f"""
+from visitors import Visitor
+
+
+class {class_name}(Visitor):
+
+    def __init__(self, ast):
+        super({class_name}, self).__init__(ast)
+        self.super = super({class_name}, self)
+
+"""
+
+    for ast_type in ast_types:
+        method = f"visit_{ast_type}"
+        t += f"""
+    def {method}(self, node):
+        value = self.super.{method}(node)
+        #process
+        return value
+
+"""
+
+    return t
+
+
+def generate_visitors(ast_types, framework=False, oop=""):
     t = ""
     for ast_type in ast_types:
         t += f'''
@@ -34,6 +61,9 @@ def visit_{ast_type}(node, **kwargs):
     raise NotImplementedError(f"visitor for ast_type {ast_type} not implemented")
     '''
     #TODO add keys related to ast_type...
+
+    if oop:
+        return generate_visitor(ast_types, oop)
 
     if framework:
         t += """
@@ -62,6 +92,7 @@ ast_type_visitors.update(implemented_ast_type_visitors) #not really until really
 def main(file, *asts, **kwargs):
     ast_types = get_ast_types(*sorted(asts))
     # print(ast_types)
+
     with file.open("w") as fp:
         fp.write(generate_visitors(ast_types, **kwargs))
     print(file)
@@ -73,6 +104,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("filename", type=str, help="filename for generated visitor")
     parser.add_argument("asts", type=str, nargs="+", help="list of Abstract Syntax Trees as json files to base the visitor upon")
-    parser.add_argument("--framework", action='store_true', help="test a visitor defined below")
+    parser.add_argument("--framework", action='store_true', help="include generic functions")
+    parser.add_argument("--oop", type=str, default="", help="class with methods, example python3 generate_visitors.py pointers_visitor asts/* --oop PointersVisitor")
+
     args = parser.parse_args()
-    main(Path(args.filename).with_suffix(".py"), *map(Path, args.asts), framework=args.framework)
+    main(Path(args.filename).with_suffix(".py"), *map(Path, args.asts), framework=args.framework, oop=args.oop)

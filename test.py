@@ -8,7 +8,7 @@ from zipfile import ZipFile
 import shutil
 
 import tf_analyser
-from utilities import load_json, dump_json
+from utilities import load_json, dump_json, dump_jsons
 
 
 class Test:
@@ -41,30 +41,25 @@ def extract():
         shutil.rmtree(macos)
     print("\n".join(map(str, slices.iterdir())))
 
-    pprint_asts()
-
 
 def get_tests(glob_expr=""):
     return tuple(map(Test, slices.glob(f"{glob_expr}*.py")))
 
 
+def pprint_objects(path, objects):
+    dump_jsons(path, objects, indent=4)
+
+
 def pprint_asts():
-    asts = Path("asts")
-    if not asts.exists(): asts.mkdir()
-    for p in slices.glob("*.py.json"):
-        ast = asts/p.name
-        dump_json(ast, load_json(p), indent=4)
-        print(ast)
-    return
+    pprint_objects(Path("asts"), slices.glob("*.py.json"))
 
 
 def pprint_patterns():
-    tests = get_tests()
-    for t in tests:
-        print()
-        print(t)
-        pprint(load_json(t.patterns))
-    return
+    pprint_objects(Path("patterns"), slices.glob("*patterns.json"))
+
+
+def pprint_outputs():
+    pprint_objects(Path("outputs"), slices.glob("*output.json"))
 
 
 def run(test):
@@ -91,7 +86,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--extract", action='store_true', help=f"flag to extract slices from zip archive ({slices_url})") #action=argparse.BooleanOptionalAction 3.10
     parser.add_argument("--pprint_asts", action='store_true', help="pretty print abstract syntax trees")
-    parser.add_argument("--pprint_patterns", action='store_true', help="pretty print abstract syntax trees")
+    parser.add_argument("--pprint_outputs", action='store_true', help="pretty print output objects")
+    parser.add_argument("--pprint_patterns", action='store_true', help="pretty print patterns objects")
     parser.add_argument("--tests", nargs='+', help="expression to id tests (example 1a 2)")
 
     args = parser.parse_args()
@@ -101,6 +97,8 @@ if __name__ == '__main__':
         pprint_asts()
     elif args.pprint_patterns:
         pprint_patterns()
+    elif args.pprint_outputs:
+        pprint_outputs()
     elif args.tests:
         for e in args.tests:
             run_tests(glob_expr=e)

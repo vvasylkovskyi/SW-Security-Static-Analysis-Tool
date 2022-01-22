@@ -1,15 +1,14 @@
 """
 """
-from pprint import pprint
 
 
 class Visitor:
 
     INDENTATION = "    "
 
+
     def __init__(self, ast):
         self.ast = ast
-
 
 
     def visit_ast(self):
@@ -27,35 +26,39 @@ class Visitor:
         return self.visit_body(node['body'])
 
 
+    def visit_body_line(self, node):
+        ast_type = node['ast_type']
+        if ast_type == 'Expr':
+            return self.visit_Expr(node)
+        elif ast_type == 'Assign':
+            return self.visit_Assign(node)
+        elif ast_type == 'If':
+            return self.visit_If(node)
+        elif ast_type == 'While':
+            return self.visit_While(node)
+        elif ast_type == 'Break':
+            return self.visit_Break(node)
+
+
     def visit_body(self, nodes):
-        visits = list()
-        for node in nodes:
-            ast_type = node['ast_type']
-            if ast_type == 'Expr':
-                visits.append(self.visit_Expr(node))
-            elif ast_type == 'Assign':
-                visits.append(self.visit_Assign(node))
-            elif ast_type == 'While':
-                visits.append(self.visit_While(node))
-            elif ast_type == 'If':
-                visits.append(self.visit_If(node))
-        return visits
+        return tuple(self.visit_body_line(node) for node in nodes)
 
 
+    def visit_op(self, node):
+        ast_type = node['ast_type']
+        if ast_type == 'NotEq':
+            op = self.visit_NotEq(node)
+        elif ast_type == 'Eq':
+            op = self.visit_Eq(node)
+        elif ast_type == 'Gt':
+            op = self.visit_Gt(node)
+        elif ast_type == 'Lt':
+            op = self.visit_Lt(node)
+        return op
 
-    def visit_ops(self, node):
-        ops = list()
-        for node in node['ops']:
-            ast_type = node['ast_type']
-            if ast_type == 'NotEq':
-                ops.append(self.visit_NotEq(node))
-            elif ast_type == 'Eq':
-                ops.append(self.visit_Eq(node))
-            elif ast_type == 'Gt':
-                ops.append(self.visit_Gt(node))
-            elif ast_type == 'Lt':
-                ops.append(self.visit_Lt(node))
-        return ops
+
+    def visit_ops(self, nodes):
+        return tuple(self.visit_op(node) for node in nodes)
 
 
     def visit_test(self, node):
@@ -68,28 +71,6 @@ class Visitor:
             'Constant': self.visit_Constant,
             'Num': self.visit_Num
         }[node['ast_type']](node)
-
-
-    def visit_expression(self, node):
-        """
-        :param node:
-        :return:
-        """
-        ast_type = node['ast_type']
-        if ast_type == 'Call':
-            expression = self.visit_Call(node)
-        elif ast_type == 'BinOp':
-            expression = self.visit_BinOp(node)
-        elif ast_type == 'Name':
-            expression = self.visit_Name(node)
-        elif ast_type == 'Str':
-            expression = self.visit_Str(node)
-        elif ast_type == 'Num':
-            expression = self.visit_Num(node)
-        elif ast_type == 'Constant':
-            return self.visit_Constant(node)
-
-        return expression
 
 
     def visit_Assign_target(self, node):
@@ -121,8 +102,8 @@ class Visitor:
         :param node:
         :return:
         """
-        targets = self.visit_Assign_targets(node['targets'])
         value = self.visit_Assign_value(node['value'])
+        targets = self.visit_Assign_targets(node['targets'])
         return targets, value
 
 
@@ -184,14 +165,28 @@ class Visitor:
         return func, args
 
 
+    def visit_Expr_value(self, node):
+        ast_type = node['ast_type']
+        if ast_type == 'Call':
+            return self.visit_Call(node)
+        elif ast_type == 'BinOp':
+            return self.visit_BinOp(node)
+        elif ast_type == 'Name':
+            return self.visit_Name(node)
+        elif ast_type == 'Str':
+            return self.visit_Str(node)
+        elif ast_type == 'Num':
+            return self.visit_Num(node)
+        elif ast_type == 'Constant':
+            return self.visit_Constant(node)
+
+
     def visit_Expr(self, node):
         """
         :param node:
         :return:
         """
-        value = self.visit_expression(node['value'])
-
-        return value
+        return self.visit_Expr_value(node['value'])
 
 
     def visit_operand(self, node):
@@ -249,7 +244,7 @@ class Visitor:
 
         comparators = list(self.visit_operand(node) for node in node['comparators'])
 
-        ops = self.visit_ops(node)
+        ops = self.visit_ops(node['ops'])
 
         return (left, ops, comparators)
 
@@ -261,6 +256,7 @@ class Visitor:
         """
         test = self.visit_test(node['test'])
         body = self.visit_body(node['body'])
+        # orelse = self.visit_body(node['orelse']) #TODO propagate to other visitors...
         return test, body
 
 
@@ -443,6 +439,7 @@ class Driver:
 
     @staticmethod
     def print_ast(visitor):
+        from pprint import pprint
         for p, ast in Driver.get_asts().items():
             print(p)
             visitor(ast).visit_ast()

@@ -1,6 +1,7 @@
 from tf_visitor import TaintQualifer, CallArgKeys
 from visitors import Visitor
 
+from scoped_ssa_visitor import Keys
 
 class TaintedFlowSrcVisitor(Visitor):
 
@@ -15,7 +16,7 @@ class TaintedFlowSrcVisitor(Visitor):
 
 
     def visit_Assign_target(self, node):
-        return f"{node[TaintQualifer.__name__]} {self.super.visit_Name(node)}"
+        return self.visit_Name(node)
 
 
     def visit_Assign(self, node):
@@ -26,7 +27,7 @@ class TaintedFlowSrcVisitor(Visitor):
     def visit_Compare(self, node):
         left = self.visit_operand(node['left'])
         comparators = list(self.visit_operand(node) for node in node['comparators'])
-        ops = self.visit_ops(node)
+        ops = self.visit_ops(node['ops'])
         return f"{left} {', '.join(ops)} {','.join(comparators)}"
 
 
@@ -40,7 +41,7 @@ class TaintedFlowSrcVisitor(Visitor):
 
 
     def visit_Call_func(self, node):
-        return f"{node[TaintQualifer.__name__]} {node['id']}"
+        return self.visit_Name(node)
 
 
     def visit_Call(self, node):
@@ -85,8 +86,8 @@ class TaintedFlowSrcVisitor(Visitor):
 
 
     def visit_Name(self, node):
-        return f"{node[TaintQualifer.__name__]} {self.super.visit_Name(node)}"
-
+        # return f"{node[TaintQualifer.__name__]} {self.super.visit_Name(node)}"
+        return f"{node[TaintQualifer.__name__]} {node[Keys.SSA_NAME]}"
 
     def visit_Str(self, node):
         return f"{node[TaintQualifer.__name__]} {self.super.visit_Str(node)}"

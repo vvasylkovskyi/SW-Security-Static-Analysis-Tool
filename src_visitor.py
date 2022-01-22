@@ -8,7 +8,7 @@ class SrcVisitor(visitors.Visitor):
 
     def visit_Assign(self, node):
         targets, value = super(SrcVisitor, self).visit_Assign(node)
-        return f"{self.indentation_level * SrcVisitor.INDENTATION}{','.join(targets)}={value}"
+        return f"{self.indentation_level * SrcVisitor.INDENTATION}{','.join(targets)} = {value}"
 
     def visit_Call(self, node):
         func, args = super(SrcVisitor, self).visit_Call(node)
@@ -20,11 +20,11 @@ class SrcVisitor(visitors.Visitor):
 
     def visit_BinOp(self, node):
         (left, op, right) = super(SrcVisitor, self).visit_BinOp(node)
-        return f"{left}{op}{right}"
+        return f"{left} {op} {right}"
 
     def visit_Compare(self, node):
         (left, ops, comparators) = super(SrcVisitor, self).visit_Compare(node)
-        return f"{left}{','.join(ops)}{','.join(comparators)}"
+        return f"{left} {','.join(ops)} {','.join(comparators)}"
 
     def visit_While(self, node):
 
@@ -59,8 +59,3 @@ class SrcVisitor(visitors.Visitor):
 
     def visit_Continue(self, node):
         return f"{self.indentation_level * SrcVisitor.INDENTATION}{super(SrcVisitor, self).visit_Continue(node)}"
-
-
-
-if __name__ == '__main__':
-    visitors.Driver.drive(SrcVisitor)
