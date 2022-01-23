@@ -1,34 +1,58 @@
+"""
+x = y -> q_y <= q_x
+do not taint x with y
+"""
+
 from collections import namedtuple, defaultdict
 
 from ps_visitor import Keys as PSKeys
 from ssa_visitor import Keys as SSAKeys
 from visitors import Visitor
 from tf_visitor import TaintQualifer, CallArgKeys
-
-"""
-x = y -> q_y <= q_x
-do not taint x with y
-"""
-Constraint = namedtuple("Constraint", ("line", "lhs_tq", "lhs_id", "rhs_tq", "rhs_id"))
-Constraint.__repr__ = lambda s:f"{s.line:>2}: {s.lhs_tq} <= {s.rhs_tq}"
+from constraints_visitor import Constraint
 
 
 class Keys(PSKeys, SSAKeys):
     pass
+
 
 class ConstraintsPathFlowSenstivityVisitor(Visitor):
 
     def __init__(self, ast):
         super(ConstraintsPathFlowSenstivityVisitor, self).__init__(ast)
         self.super = super(ConstraintsPathFlowSenstivityVisitor, self)
-        self._constraints = defaultdict(list)
+        self._scoped_constraints = defaultdict(list)
+        self._path_feasibility_constraints = defaultdict(list)
         self._scope = None
 
 
     @property
     def constraints(self):
-        return self._constraints
+        return self._scoped_constraints
 
+
+    @property
+    def path_feasibility_constraints(self):
+        return self._path_feasibility_constraints
+
+
+    def make_path_feasibility_constraints(self):
+        """
+        :return:
+        """
+        for scope,constraints in self._scoped_constraints.items():
+            self._path_feasibility_constraints[scope].extend(self._scoped_constraints[scope].copy())
+            for key in self._scoped_constraints.keys()-{scope}:
+                if ','.join(map(str, scope)) in ','.join(map(str, key)):#order matters
+                    self._path_feasibility_constraints[key].extend(constraints)
+        for pf_constraints in self._path_feasibility_constraints.values():
+            pf_constraints.sort()
+
+
+    def visit_ast(self):
+        v = self.super.visit_ast()
+        self.make_path_feasibility_constraints()
+        return v
 
     def visit_body_line(self, node):
         self._scope = tuple(node[Keys.CONDITIONS])
@@ -36,7 +60,7 @@ class ConstraintsPathFlowSenstivityVisitor(Visitor):
 
 
     def visit_Assign_target(self, node):
-        return (node[TaintQualifer.__name__], self.visit_Name(node))
+        return self.visit_Name(node)
 
 
     def visit_BinOp_operand(self, node):
@@ -59,13 +83,11 @@ class ConstraintsPathFlowSenstivityVisitor(Visitor):
 
         targets = self.visit_Assign_targets(node['targets'])
         # if len(targets) > 1: ...
-        target_taint_qualifier, target_id = targets[0]  # assume1 for now, how to treat value
+        ((target_taint_qualifier, target_id),) = targets[0]  # assume1 for now, how to treat value
 
         for taint_qualifier,name in values:
             constraint = Constraint(node["lineno"], taint_qualifier, name, target_taint_qualifier, target_id)
-            self._constraints[self._scope].append(constraint)
-
-            # self._constraints_map[]
+            self._scoped_constraints[self._scope].append(constraint)
 
 
     def visit_Call_arg(self, node):
@@ -85,11 +107,12 @@ class ConstraintsPathFlowSenstivityVisitor(Visitor):
             values = self.visit_Call_arg(node) #>1 if BinOp
             for taint_qualifier, name in values:
                 constraint = Constraint(lineno, taint_qualifier, name, arg_taint_qualifier, arg)
-                self._constraints[self._scope].append(constraint)
+                self._scoped_constraints[self._scope].append(constraint)
 
 
     def visit_Call_func(self, node):
-        return (node['lineno'], node[TaintQualifer.__name__], self.visit_Name(node))
+        ((taint_qualifier, name),) = self.visit_Name(node)
+        return (node['lineno'], taint_qualifier, name)
 
 
     def visit_Call(self, node):
@@ -103,6 +126,11 @@ class ConstraintsPathFlowSenstivityVisitor(Visitor):
         return ((taint_qualifier, name), )
 
 
+    def visit_Constant(self, node):
+        taint_qualifier, v = node[TaintQualifer.__name__], self.super.visit_Constant(node)
+        return ((taint_qualifier, v), ) #homogeneize return values, BinOp's fault
+
+
     def visit_Str(self, node):
         taint_qualifier, s = node[TaintQualifer.__name__], self.super.visit_Str(node)
         return ((taint_qualifier, s), )
@@ -110,9 +138,4 @@ class ConstraintsPathFlowSenstivityVisitor(Visitor):
 
     def visit_Num(self, node):
         taint_qualifier, n = node[TaintQualifer.__name__], node['n']
-        return ((taint_qualifier, n),) #homogenize return values, BinOp's fault
-
-
-    def visit_Constant(self, node):
-        taint_qualifier, v = node[TaintQualifer.__name__], self.super.visit_Constant(node)
-        return ((taint_qualifier, v), )
+        return ((taint_qualifier, n),)

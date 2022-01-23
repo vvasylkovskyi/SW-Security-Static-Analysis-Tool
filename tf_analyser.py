@@ -71,6 +71,8 @@ def get_constraints(ast, pattern):
 
     report("CONSTRAINTS:", cv.constraints)
 
+    report("PATH_FEASIBILITY_CONSTRAINTS:", cv.path_feasibility_constraints)
+
     # pprint(cv.constraints, width=10)
     # report("CONSTRAINTS:", "\n".join(map(repr, sorted(set(cv.constraints)))))
 
