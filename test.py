@@ -3,12 +3,12 @@
 """
 
 from pathlib import Path
-from pprint import pprint
 from zipfile import ZipFile
 import shutil
 
 import tf_analyser
-from utilities import load_json, dump_json, dump_jsons
+from utilities import load_json
+from utilities import dump_jsons
 
 
 class Test:
@@ -23,8 +23,10 @@ class Test:
     def __str__(self):
         return f"{self.id}: {self.name}"
 
+
 slices = Path("slices")
-slices_url = "https://fenix.tecnico.ulisboa.pt/downloadFile/845043405565957/slices-14Jan.zip"
+slices_url = "https://fenix.tecnico.ulisboa.pt/downloadFile/845043405567155/slices-20Jan.zip"
+
 
 def extract():
     if not slices.exists():

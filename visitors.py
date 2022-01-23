@@ -1,6 +1,96 @@
 """
 """
 
+class AstTypes:
+
+    class Generic:
+        ast_type = 'ast_type'
+        lineno = 'lineno'
+        end_lineno = 'end_lineno'
+        col_offset = 'col_offset'
+        end_col_offset ='end_col_offset'
+    
+    class Add:
+        Key = 'Add'
+
+    class Assign:
+        Key = 'Assign'
+        targets = 'targets'
+        value = 'value'
+        type_comment = 'type_comment'
+
+    class BinOp:
+        Key = 'BinOp'
+        left = 'left'
+        op = 'op'
+        right = 'right'
+        
+    class Break:
+        Key = 'Break'
+
+    class Call:
+        Key = 'Call'
+        func = 'func'
+        args = 'args'
+        starargs = 'starargs'
+        kwargs = 'kwargs'
+        keywords = 'keywords'
+
+    class Compare:
+        Key = 'Compare'
+        left = 'left'
+        comparators = 'comparators'
+        ops = 'ops'
+
+    class Constant:
+        Key = 'Constant'
+        kind = 'kind'
+        value = 'value'
+
+    class Eq:
+        Key = 'Eq'
+
+    class Expr:
+        Key = 'Expr'
+        value = 'value'
+
+    class Gt:
+        Key = 'Gt'
+
+    class If:
+        Key = 'If'
+        test = 'test'
+        body = 'body'
+        orelse = 'orelse'
+
+    class Load:
+        Key = 'Load'
+
+    class Lt:
+        Key = 'Lt'
+
+    class Module:
+        Key = 'Module'
+        type_ignores = 'type_ignores'
+        body = 'body'
+
+    class Name:
+        Key = 'Name'
+        ctx = 'ctx'
+        id = 'id'
+
+    class NotEq:
+        Key = 'NotEq'
+
+    class Store:
+        Key = 'Store'
+
+    class While:
+        Key = 'While'
+        test = 'test'
+        body = 'body'
+        orelse = 'orelse'
+
 
 class Visitor:
 
@@ -27,16 +117,16 @@ class Visitor:
 
 
     def visit_body_line(self, node):
-        ast_type = node['ast_type']
-        if ast_type == 'Expr':
+        ast_type = node[AstTypes.Generic.ast_type]
+        if ast_type == AstTypes.Expr.Key:
             return self.visit_Expr(node)
-        elif ast_type == 'Assign':
+        elif ast_type == AstTypes.Assign.Key:
             return self.visit_Assign(node)
-        elif ast_type == 'If':
+        elif ast_type == AstTypes.If.Key:
             return self.visit_If(node)
-        elif ast_type == 'While':
+        elif ast_type == AstTypes.While.Key:
             return self.visit_While(node)
-        elif ast_type == 'Break':
+        elif ast_type == AstTypes.Break.Key:
             return self.visit_Break(node)
 
 
@@ -44,33 +134,31 @@ class Visitor:
         return tuple(self.visit_body_line(node) for node in nodes)
 
 
-    def visit_op(self, node):
-        ast_type = node['ast_type']
-        if ast_type == 'NotEq':
+    def visit_Compare_ops_op(self, node):
+        ast_type = node[AstTypes.Generic.ast_type]
+        if ast_type == AstTypes.NotEq.Key:
             op = self.visit_NotEq(node)
-        elif ast_type == 'Eq':
+        elif ast_type == AstTypes.Eq.Key:
             op = self.visit_Eq(node)
-        elif ast_type == 'Gt':
+        elif ast_type == AstTypes.Gt.Key:
             op = self.visit_Gt(node)
-        elif ast_type == 'Lt':
+        elif ast_type == AstTypes.Lt.Key:
             op = self.visit_Lt(node)
         return op
 
 
-    def visit_ops(self, nodes):
-        return tuple(self.visit_op(node) for node in nodes)
+    def visit_Compare_ops(self, nodes):
+        return tuple(self.visit_Compare_ops_op(node) for node in nodes)
 
 
-    def visit_test(self, node):
+    def visit_If_test(self, node):
         return {
-            'Compare': self.visit_Compare,
-            'Expr': self.visit_Expr,
-            'Name': self.visit_Name,
-            'BinOp': self.visit_BinOp,
-            'Str': self.visit_Str,
-            'Constant': self.visit_Constant,
-            'Num': self.visit_Num
-        }[node['ast_type']](node)
+            AstTypes.Compare.Key : self.visit_Compare,
+            AstTypes.Expr.Key: self.visit_Expr,
+            AstTypes.Name.Key : self.visit_Name,
+            AstTypes.BinOp.Key : self.visit_BinOp,
+            AstTypes.Constant.Key : self.visit_Constant
+        }[node[AstTypes.Generic.ast_type]](node)
 
 
     def visit_Assign_target(self, node):
@@ -82,18 +170,14 @@ class Visitor:
 
 
     def visit_Assign_value(self, node):
-        ast_type = node['ast_type']
-        if ast_type == 'Str':
-            return self.visit_Str(node)
-        elif ast_type == 'Num':
-            return self.visit_Num(node)
-        elif ast_type == 'Constant':
+        ast_type = node[AstTypes.Generic.ast_type]
+        if ast_type == AstTypes.Constant.Key:
             return self.visit_Constant(node)
-        elif ast_type == 'Name':
+        elif ast_type == AstTypes.Name.Key:
             return self.visit_Name(node)
-        elif ast_type == 'Call':
+        elif ast_type == AstTypes.Call.Key:
             return self.visit_Call(node)
-        elif ast_type == 'BinOp':
+        elif ast_type == AstTypes.BinOp.Key:
             return self.visit_BinOp(node)
 
 
@@ -102,36 +186,34 @@ class Visitor:
         :param node:
         :return:
         """
-        value = self.visit_Assign_value(node['value'])
-        targets = self.visit_Assign_targets(node['targets'])
+        value = self.visit_Assign_value(node[AstTypes.Assign.value])
+        targets = self.visit_Assign_targets(node[AstTypes.Assign.targets])
         return targets, value
 
 
     def visit_Call_func(self, node):
         """
-        :param node: {'ast_type': 'Name',
-                      'col_offset': 2,
-                      'ctx': {'ast_type': 'Load'},
-                      'id': 'c',
-                      'lineno': 2}
+        :param node: {
+            'ast_type': 'Name',
+            'col_offset': 2,
+            'ctx': {'ast_type': 'Load'},
+            'id': 'c',
+            'lineno': 2
+            }
         :return:
         """
         return self.visit_Name(node)
 
 
     def visit_Call_arg(self, node):
-        ast_type = node['ast_type']
-        if ast_type == 'Str':
-            arg = self.visit_Str(node)
-        elif ast_type == 'Num':
-            arg = self.visit_Num(node)
-        elif ast_type == 'Constant':
+        ast_type = node[AstTypes.Generic.ast_type]
+        if ast_type == AstTypes.Constant.Key:
             return self.visit_Constant(node)
-        elif ast_type == 'Name':
+        elif ast_type == AstTypes.Name.Key:
             arg = self.visit_Name(node)
-        elif ast_type == 'Call':
+        elif ast_type == AstTypes.Call.Key:
             arg = self.visit_Call(node)
-        elif ast_type == 'BinOp':
+        elif ast_type == AstTypes.BinOp.Key:
             arg = self.visit_BinOp(node)
         return arg
 
@@ -158,26 +240,22 @@ class Visitor:
             }
         :return:
         """
-        func = self.visit_Call_func(node['func'])
-        
-        args = self.visit_Call_args(node['args'])
+        func = self.visit_Call_func(node[AstTypes.Call.func])
+
+        args = self.visit_Call_args(node[AstTypes.Call.args])
 
         return func, args
 
 
     def visit_Expr_value(self, node):
-        ast_type = node['ast_type']
-        if ast_type == 'Call':
+        ast_type = node[AstTypes.Generic.ast_type]
+        if ast_type == AstTypes.Call.Key:
             return self.visit_Call(node)
-        elif ast_type == 'BinOp':
+        elif ast_type == AstTypes.BinOp.Key:
             return self.visit_BinOp(node)
-        elif ast_type == 'Name':
+        elif ast_type == AstTypes.Name.Key:
             return self.visit_Name(node)
-        elif ast_type == 'Str':
-            return self.visit_Str(node)
-        elif ast_type == 'Num':
-            return self.visit_Num(node)
-        elif ast_type == 'Constant':
+        elif ast_type == AstTypes.Constant.Key:
             return self.visit_Constant(node)
 
 
@@ -186,36 +264,27 @@ class Visitor:
         :param node:
         :return:
         """
-        return self.visit_Expr_value(node['value'])
-
-
-    def visit_operand(self, node):
-        return {
-            # 'Expr': self.visit_Expr,
-            'Call': self.visit_Call,
-            'Name': self.visit_Name,
-            'BinOp': self.visit_BinOp,
-            'Str': self.visit_Str,
-            'Num': self.visit_Num,
-            'Constant': self.visit_Constant,
-
-        }[node['ast_type']](node)
+        return self.visit_Expr_value(node[AstTypes.Expr.value])
 
 
     def visit_BinOp_operand(self, node):
-        ast_type = node['ast_type']
-        if ast_type == 'Str':
-            return self.visit_Str(node)
-        elif ast_type == 'Num':
-            return self.visit_Num(node)
-        elif ast_type == 'Constant':
+        ast_type = node[AstTypes.Generic.ast_type]
+        if ast_type == AstTypes.Constant.Key:
             return self.visit_Constant(node)
-        elif ast_type == 'Name':
+        elif ast_type == AstTypes.Name.Key:
             return self.visit_Name(node)
-        elif ast_type == 'Call':
+        elif ast_type == AstTypes.Call.Key:
             return self.visit_Call(node)
-        elif ast_type == 'BinOp':
+        elif ast_type == AstTypes.BinOp.Key:
             return self.visit_BinOp(node)
+
+
+    def visit_BinOp_op(self, node):
+        ast_type = node[AstTypes.Generic.ast_type]
+        if ast_type == AstTypes.Add.Key:
+            return self.visit_Add(node)
+        else:
+            raise NotImplementedError
 
 
     def visit_BinOp(self, node):
@@ -223,16 +292,26 @@ class Visitor:
         :param node:
         :return:
         """
-        left = self.visit_BinOp_operand(node['left'])
+        left = self.visit_BinOp_operand(node[AstTypes.BinOp.left])
 
-        op = {
-            'Add': self.visit_Add,
-            'Sub': self.visit_Sub
-        }[node['op']['ast_type']](node['op'])
-        
-        right = self.visit_BinOp_operand(node['right'])
+        op = self.visit_BinOp_op(node[AstTypes.BinOp.op])
+
+        right = self.visit_BinOp_operand(node[AstTypes.BinOp.right])
 
         return (left, op, right)
+
+
+    def visit_Compare_operand(self, node):
+        return {
+            AstTypes.Call.Key : self.visit_Call,
+            AstTypes.Name.Key : self.visit_Name,
+            AstTypes.BinOp.Key : self.visit_BinOp,
+            AstTypes.Constant.Key : self.visit_Constant
+        }[node[AstTypes.Generic.ast_type]](node)
+
+
+    def visit_Compare_comparators(self, nodes):
+        return tuple(self.visit_Compare_operand(node) for node in nodes)
 
 
     def visit_Compare(self, node):
@@ -240,11 +319,11 @@ class Visitor:
         :param node:
         :return:
         """
-        left = self.visit_operand(node['left'])
+        left = self.visit_Compare_operand(node[AstTypes.Compare.left])
 
-        comparators = list(self.visit_operand(node) for node in node['comparators'])
+        comparators = self.visit_Compare_comparators(node[AstTypes.Compare.comparators])
 
-        ops = self.visit_ops(node['ops'])
+        ops = self.visit_Compare_ops(node[AstTypes.Compare.ops])
 
         return (left, ops, comparators)
 
@@ -254,8 +333,8 @@ class Visitor:
         :param node:
         :return:
         """
-        test = self.visit_test(node['test'])
-        body = self.visit_body(node['body'])
+        test = self.visit_If_test(node[AstTypes.While.test])
+        body = self.visit_body(node[AstTypes.While.body])
         # orelse = self.visit_body(node['orelse']) #TODO propagate to other visitors...
         return test, body
 
@@ -265,9 +344,9 @@ class Visitor:
         :param node:
         :return:
         """
-        test = self.visit_test(node['test'])
-        body = self.visit_body(node['body'])
-        orelse = self.visit_body(node['orelse'])
+        test = self.visit_If_test(node[AstTypes.If.test])
+        body = self.visit_body(node[AstTypes.If.body])
+        orelse = self.visit_body(node[AstTypes.If.orelse])
         return test, body, orelse
 
 
@@ -282,51 +361,13 @@ class Visitor:
         }
         :return:
         """
-        return node['id']
+        return node[AstTypes.Name.id]
 
 
     def visit_Constant(self, node):
         """
         """
-        return repr(node['value'])
-
-
-    def visit_Str(self, node):
-        """
-        :param node: {'ast_type': 'Str', 'col_offset': 2, 'lineno': 1, 's': ''}
-        :return:
-        """
-        return repr(node['s'])
-
-
-    def visit_Num(self, node):
-        """
-        :param node:
-            {
-                                "ast_type": "Num",
-                                "col_offset": 9,
-                                "lineno": 3,
-                                "n": {
-                                    "ast_type": "int",
-                                    "n": 3,
-                                    "n_str": "3"
-                                }
-                            }
-        :return:
-        """
-        return self.visit_int(node['n'])
-
-
-    def visit_int(self, node):
-        """
-        :param node: {
-                                    "ast_type": "int",
-                                    "n": 3,
-                                    "n_str": "3"
-                                }
-        :return:
-        """
-        return node["n_str"]
+        return repr(node[AstTypes.Constant.value])
 
 
     def visit_Break(self, node):
@@ -351,14 +392,6 @@ class Visitor:
         :return:
         """
         return '+'
-
-
-    def visit_Sub(self, node):
-        """
-        :param node:
-        :return:
-        """
-        return '-'
 
 
     def visit_NotEq(self, node):

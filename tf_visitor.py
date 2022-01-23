@@ -87,11 +87,3 @@ class TaintedFlowVisitor(Visitor):
         node[TaintQualifer.__name__] = TaintQualifer.UNTAINTED
         self.check_for_Call_arg(node)
         self.check_for_Call_arg_CallFlowCategory(node)
-
-
-    def visit_Str(self, node):
-        self.visit_Constant(node)
-
-
-    def visit_Num(self, node):
-        self.visit_Constant(node)

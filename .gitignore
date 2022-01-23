@@ -1,6 +1,11 @@
 #research
 scraps.py
+*_legacy.py
 asts/
+outputs/
+patterns/
+research/
+slicesold.zip
 
 #application data
 slices/

@@ -1,7 +1,7 @@
 """
 """
 
-from visitors import Visitor
+from visitors import Visitor, AstTypes
 
 
 class Keys:
@@ -39,14 +39,14 @@ class PathSensitivityVisitor(Visitor):
 
     def visit_While(self, node):
 
-        test = self.visit_test(node['test'])
+        test = self.visit_If_test(node[AstTypes.While.test])
         condition = (test, True)
 
         self._conditions.append(condition)
 
         self._current_conditions.append(condition)
 
-        body = self.visit_body(node['body'])
+        body = self.visit_body(node[AstTypes.While.body])
 
         self._current_conditions.pop()
 
@@ -55,21 +55,21 @@ class PathSensitivityVisitor(Visitor):
 
     def visit_If(self, node):
 
-        test = self.visit_test(node['test'])
+        test = self.visit_If_test(node[AstTypes.If.test])
 
         condition = (test, True)
         self._conditions.append(condition)
 
         self._current_conditions.append(condition)
 
-        body = self.visit_body(node['body'])
+        body = self.visit_body(node[AstTypes.If.body])
 
         condition = (test, False)
         self._conditions.append(condition)
 
         self._current_conditions[-1] = condition
 
-        orelse = self.visit_body(node['orelse'])
+        orelse = self.visit_body(node[AstTypes.If.orelse])
 
         self._current_conditions.pop()
 

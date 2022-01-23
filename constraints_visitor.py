@@ -1,6 +1,6 @@
 from collections import namedtuple, defaultdict
 
-from visitors import Visitor
+from visitors import Visitor, AstTypes
 from tf_visitor import TaintQualifer, CallArgKeys
 
 """
@@ -10,6 +10,8 @@ do not taint x with y
 Constraint = namedtuple("Constraint", ("line", "lhs_tq", "lhs_id", "rhs_tq", "rhs_id"))
 Constraint.__repr__ = lambda s:f"{s.line:>2}: {s.lhs_tq} <= {s.rhs_tq}"
 
+#TODO FIX, previous working oop version not commited
+#also consider mot repeating funcionality in similar visitor pf_sensitivity
 
 class ConstraintsVisitor(Visitor):
 
@@ -29,15 +31,15 @@ class ConstraintsVisitor(Visitor):
 
 
     def visit_BinOp_operand(self, node):
-        if node['ast_type'] == 'BinOp':
-            return self.visit_BinOp_operand(node['left']) + self.visit_BinOp_operand(node['right'])
+        if node[AstTypes.Generic.ast_type] == AstTypes.BinOp.Key:
+            return self.visit_BinOp_operand(node[AstTypes.BinOp.left]) + self.visit_BinOp_operand(node[AstTypes.BinOp.right])
         else:
             return self.super.visit_BinOp_operand(node)
 
 
     def visit_Assign_value(self, node):
-        if node['ast_type'] == 'BinOp':
-            return self.visit_BinOp_operand(node['left']) + self.visit_BinOp_operand(node['right'])
+        if node[AstTypes.Generic.ast_type] == AstTypes.BinOp.Key:
+            return self.visit_BinOp_operand(node[AstTypes.BinOp.left]) + self.visit_BinOp_operand(node[AstTypes.BinOp.right])
         else:
             return self.super.visit_Assign_value(node)
 
@@ -54,12 +56,10 @@ class ConstraintsVisitor(Visitor):
             constraint = Constraint(node["lineno"], taint_qualifier, name, target_taint_qualifier, target_id)
             self._constraints.append(constraint)
 
-            # self._constraints_map[]
-
 
     def visit_Call_arg(self, node):
-        if node['ast_type'] == 'BinOp':
-            return self.visit_BinOp_operand(node['left']) + self.visit_BinOp_operand(node['right'])
+        if node[AstTypes.Generic.ast_type] == AstTypes.BinOp.Key:
+            return self.visit_BinOp_operand(node[AstTypes.BinOp.left]) + self.visit_BinOp_operand(node[AstTypes.BinOp.right])
         else:
             return self.super.visit_Call_arg(node)
 
@@ -77,7 +77,6 @@ class ConstraintsVisitor(Visitor):
                 self._constraints.append(constraint)
 
 
-
     def visit_Call_func(self, node):
         return (node['lineno'], node[TaintQualifer.__name__], self.super.visit_Name(node))
 
@@ -85,24 +84,12 @@ class ConstraintsVisitor(Visitor):
     def visit_Call(self, node):
         lineno, taint_qualifier, name = self.visit_Call_func(node['func'])
         self.visit_Call_args(node['args'], lineno)
-        return ((taint_qualifier, name), )
+        return (taint_qualifier, name)
 
 
     def visit_Name(self, node):
-        taint_qualifier, name = node[TaintQualifer.__name__], self.super.visit_Name(node)
-        return ((taint_qualifier, name), )
-
-
-    def visit_Str(self, node):
-        taint_qualifier, s = node[TaintQualifer.__name__], self.super.visit_Str(node)
-        return ((taint_qualifier, s), )
-
-
-    def visit_Num(self, node):
-        taint_qualifier, n = node[TaintQualifer.__name__], node['n']
-        return ((taint_qualifier, n),) #homogenize return values, BinOp's fault
+        return (node[TaintQualifer.__name__], self.super.visit_Name(node))
 
 
     def visit_Constant(self, node):
-        taint_qualifier, v = node[TaintQualifer.__name__], self.super.visit_Constant(node)
-        return ((taint_qualifier, v), )
+        return (node[TaintQualifer.__name__], self.super.visit_Constant(node))

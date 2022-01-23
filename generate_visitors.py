@@ -2,21 +2,30 @@ from pathlib import Path
 
 from utilities import load_json
 
-def get_ast_types(*asts):
-    ast_types = set()
-    def f(d):
-        for k,v in d.items():
-            if k=="ast_type" and v not in ast_types:
-                ast_types.add(v)
-            elif isinstance(v, dict):
-                f(v)
-            elif isinstance(v, list):
-                for e in v:
-                    f(e)
-    for p in asts:
-        f(load_json(p))
 
-    return ast_types
+AST_TYPE = "ast_type"
+
+def get_ast_types_enriched(ast, data):
+    for k, v in ast.items():
+        continue
+
+
+def get_ast_types(ast, data):
+    for k, v in ast.items():
+        if k == AST_TYPE and v not in data:
+            data.add(v)
+        elif isinstance(v, dict):
+            get_ast_types(v, data)
+        elif isinstance(v, list):
+            for e in v:
+                get_ast_types(e, data)
+
+
+def get_all_ast_types(*asts, func = get_ast_types, constructor = set ):
+    data = constructor()
+    for p in asts:
+        func(load_json(p), data)
+    return data
 
 
 def generate_visitor(ast_types, class_name):
@@ -90,22 +99,42 @@ ast_type_visitors.update(implemented_ast_type_visitors) #not really until really
     return t
 
 def main(file, *asts, **kwargs):
-    ast_types = get_ast_types(*sorted(asts))
+    ast_types = get_all_ast_types(*asts)
     # print(ast_types)
 
     with file.open("w") as fp:
-        fp.write(generate_visitors(ast_types, **kwargs))
+        fp.write(generate_visitors(sorted(ast_types), **kwargs))
     print(file)
     return
 
 
+def generate_keys(*asts):
+    ast_types = get_all_ast_types(*asts)
+    t = f"""
+class AstTypes:
+    Key = {repr(AST_TYPE)}
+    """
+    for ast_type in sorted(ast_types):
+        t += f"""
+    class {ast_type}:
+        Key = {repr(ast_type)}
+"""
+
+    print(t)
+
+
 if __name__ == '__main__':
     import argparse
+    import datetime
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("filename", type=str, help="filename for generated visitor")
     parser.add_argument("asts", type=str, nargs="+", help="list of Abstract Syntax Trees as json files to base the visitor upon")
+    parser.add_argument("--filename", default=f"new_visitor_{datetime.datetime.now().timestamp()}", type=str, help="filename for generated visitor")
     parser.add_argument("--framework", action='store_true', help="include generic functions")
     parser.add_argument("--oop", type=str, default="", help="class with methods, example python3 generate_visitors.py pointers_visitor asts/* --oop PointersVisitor")
+    parser.add_argument("--keys", type=str, default="", help="class with keys related to the ast types ast_type")
 
     args = parser.parse_args()
-    main(Path(args.filename).with_suffix(".py"), *map(Path, args.asts), framework=args.framework, oop=args.oop)
+    if args.keys:
+        generate_keys(*map(Path, args.asts))
+    else:
+        main(Path(args.filename).with_suffix(".py"), *map(Path, args.asts), framework=args.framework, oop=args.oop)

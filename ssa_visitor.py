@@ -18,7 +18,6 @@ class SingleStaticAssignmentVisitor(Visitor):
         self._scope = None
         self._scoped_variable_ssa_map = defaultdict(dict)
 
-#TODO scope map {cond1 : {a_0: a}}
 
     @property
     def variable_ssa_map(self):

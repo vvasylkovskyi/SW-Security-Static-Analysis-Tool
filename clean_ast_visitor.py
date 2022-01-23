@@ -1,7 +1,7 @@
 """
 """
 
-from visitors import Visitor
+from visitors import Visitor, AstTypes
 
 
 class CleanAstVisitor(Visitor):
@@ -21,7 +21,7 @@ class CleanAstVisitor(Visitor):
     def visit_Module(self, node):
         self.delete_keys(
             node,
-            'type_ignores',
+            AstTypes.Module.type_ignores,
         )
         self.super.visit_Module(node)
 
@@ -29,36 +29,36 @@ class CleanAstVisitor(Visitor):
     def visit_Assign(self, node):
         self.delete_keys(
             node, 
-            'end_lineno',
-            'col_offset',
-            'end_col_offset',
-            "type_comment"
+            AstTypes.Generic.end_lineno,
+            AstTypes.Generic.col_offset,
+            AstTypes.Generic.end_col_offset,
+            AstTypes.Assign.type_comment
         )
-        self.visit_Assign_targets(node['targets'])
-        self.visit_Assign_value(node['value'])
+        self.visit_Assign_targets(node[AstTypes.Assign.targets])
+        self.visit_Assign_value(node[AstTypes.Assign.value])
 
 
     def visit_Call(self, node):
         keys = (
-            'end_lineno',
-            'col_offset',
-            'end_col_offset',
-            'starargs',
-            'kwargs',
-            'keywords'
+            AstTypes.Generic.end_lineno,
+            AstTypes.Generic.col_offset,
+            AstTypes.Generic.end_col_offset,
+            AstTypes.Call.starargs,
+            AstTypes.Call.kwargs,
+            AstTypes.Call.keywords
         )
         self.delete_keys(node, *keys)
 
-        self.visit_Call_func(node['func'])
-        self.visit_Call_args(node['args'])
+        self.visit_Call_func(node[AstTypes.Call.func])
+        self.visit_Call_args(node[AstTypes.Call.args])
 
 
     def visit_Expr(self, node):
         self.delete_keys(
             node,
-            'end_lineno',
-            'col_offset',
-            'end_col_offset'
+            AstTypes.Generic.end_lineno,
+            AstTypes.Generic.col_offset,
+            AstTypes.Generic.end_col_offset,
         )
         self.super.visit_Expr(node)
 
@@ -66,37 +66,37 @@ class CleanAstVisitor(Visitor):
     def visit_BinOp(self, node):
         self.delete_keys(
             node,
-            'lineno',
-            'end_lineno',
-            'col_offset',
-            'end_col_offset'
+            AstTypes.Generic.lineno,
+            AstTypes.Generic.end_lineno,
+            AstTypes.Generic.col_offset,
+            AstTypes.Generic.end_col_offset,
         )
 
-        self.visit_BinOp_operand(node['left'])
-        self.visit_BinOp_operand(node['right'])
+        self.visit_BinOp_operand(node[AstTypes.BinOp.left])
+        self.visit_BinOp_operand(node[AstTypes.BinOp.right])
 
 
     def visit_While(self, node):
         self.delete_keys(
             node,
-            'end_lineno',
-            'col_offset',
-            'end_col_offset'
+            AstTypes.Generic.end_lineno,
+            AstTypes.Generic.col_offset,
+            AstTypes.Generic.end_col_offset,
         )
 
-        self.visit_test(node['test'])
+        self.visit_If_test(node['test'])
         self.visit_body(node['body'])
 
 
     def visit_If(self, node):
         self.delete_keys(
             node,
-            'end_lineno',
-            'col_offset',
-            'end_col_offset'
+            AstTypes.Generic.end_lineno,
+            AstTypes.Generic.col_offset,
+            AstTypes.Generic.end_col_offset,
         )
 
-        self.visit_test(node['test'])
+        self.visit_If_test(node['test'])
         self.visit_body(node['body'])
         self.visit_body(node['orelse'])
 
@@ -104,54 +104,30 @@ class CleanAstVisitor(Visitor):
     def visit_Name(self, node):
         self.delete_keys(
             node,
-            'end_lineno',
-            'col_offset',
-            'end_col_offset',
-            'ctx'
+            AstTypes.Generic.end_lineno,
+            AstTypes.Generic.col_offset,
+            AstTypes.Generic.end_col_offset,
+            AstTypes.Name.ctx
         )
-
-
-    def visit_Str(self, node):
-        self.delete_keys(
-            node,
-            'lineno',
-            'end_lineno',
-            'col_offset',
-            'end_col_offset',
-            'kind'
-        )
-
-
-    def visit_Num(self, node):
-        self.delete_keys(
-            node,
-            'lineno',
-            'end_lineno',
-            'col_offset',
-            'end_col_offset',
-            'kind'
-        )
-        self.visit_int(node['n'])
-        node['n'] = node['n']['n_str']
 
 
     def visit_Constant(self, node):
         self.delete_keys(
             node,
-            'lineno',
-            'end_lineno',
-            'col_offset',
-            'end_col_offset',
-            'kind'
+            AstTypes.Generic.lineno,
+            AstTypes.Generic.end_lineno,
+            AstTypes.Generic.col_offset,
+            AstTypes.Generic.end_col_offset,
+            AstTypes.Constant.kind
         )
 
 
     def visit_Break(self, node):
         self.delete_keys(
             node,
-            'end_lineno',
-            'col_offset',
-            'end_col_offset'
+            AstTypes.Generic.end_lineno,
+            AstTypes.Generic.col_offset,
+            AstTypes.Generic.end_col_offset,
         )
 
 

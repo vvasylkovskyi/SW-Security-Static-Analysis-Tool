@@ -1,9 +1,9 @@
 """
 Segurança de Software - Instituto Superior Técnico / Universidade de Lisboa
-MEIC-A 2021/2022 Periodo 2
+MEIC-A 2021/2022 2nd Period
 Software Vulnerabilities Static Analysis tool:
 
-given a program, a tainted flow analysis
+given a pyhon program slice, a tainted flow analysis
 based on the series of lectures https://www.coursera.org/learn/software-security/lecture/c4Dw1/flow-analysis
 is performed
 
@@ -15,20 +15,20 @@ from pathlib import Path
 from pprint import pprint
 
 # from pointers_visitor import PointersVisitor
-from constraints_pf_sensitivity_visitor import ConstraintsPathFlowSenstivityVisitor
-from ps_visitor import PathSensitivityVisitor
-from scoped_ssa_visitor import ScopedSingleStaticAssignmentVisitor
-from utilities import load_json
-
+# from tf_src_visitor import TaintedFlowSrcVisitor
+# from ssa_visitor import SingleStaticAssignmentVisitor
 
 from src_visitor import SrcVisitor
 from clean_ast_visitor import CleanAstVisitor
+from ps_visitor import PathSensitivityVisitor
+from scoped_ssa_visitor import ScopedSingleStaticAssignmentVisitor
+from ssa_src_visitor import SSASrcVisitor
 from instantiation_visitor import InstantiationVisitor
 from tf_visitor import TaintedFlowVisitor
-from tf_src_visitor import TaintedFlowSrcVisitor
-from constraints_visitor import ConstraintsVisitor
-from ssa_visitor import SingleStaticAssignmentVisitor
-from ssa_src_visitor import SSASrcVisitor
+from tf_ssa_src_visitor import TaintedFlowSSASrcVisitor
+from constraints_pf_sensitivity_visitor import ConstraintsPathFlowSenstivityVisitor
+
+from utilities import load_json
 
 
 def report(context, obj):
@@ -60,21 +60,18 @@ def get_constraints(ast, pattern):
     tfv.visit_ast()  # assign taint qualifiers
 
     # report("AST:", ast) # check progress of taint qualifiers atribution
-
     # report("LABELS:", tfv.labels)
 
-    report("SOURCE WITH TYPE QUALIFIERS:", TaintedFlowSrcVisitor(ast).visit_ast())
+    report("SOURCE WITH TYPE QUALIFIERS:", TaintedFlowSSASrcVisitor(ast).visit_ast())
 
-    # cv = ConstraintsVisitor(ast)
     cv = ConstraintsPathFlowSenstivityVisitor(ast)
     cv.visit_ast()  # create constraints
 
     report("CONSTRAINTS:", cv.constraints)
-
-    report("PATH_FEASIBILITY_CONSTRAINTS:", cv.path_feasibility_constraints)
-
     # pprint(cv.constraints, width=10)
     # report("CONSTRAINTS:", "\n".join(map(repr, sorted(set(cv.constraints)))))
+
+    report("PATH_FEASIBILITY_CONSTRAINTS:", cv.path_feasibility_constraints)
 
     # # print(f"please solve constraints to detect illegal flows")
 
@@ -127,7 +124,6 @@ def main_experimental(ast, patterns):
 
 def main(ast, patterns):
     main_experimental(ast, patterns)
-    # test_visitor_wip(ast, patterns)
 
 
 if __name__ == "__main__":

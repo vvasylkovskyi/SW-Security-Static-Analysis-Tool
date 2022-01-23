@@ -1,7 +1,6 @@
 from tf_visitor import TaintQualifer, CallArgKeys
-from visitors import Visitor
+from visitors import Visitor, AstTypes
 
-from scoped_ssa_visitor import Keys
 
 class TaintedFlowSrcVisitor(Visitor):
 
@@ -21,13 +20,13 @@ class TaintedFlowSrcVisitor(Visitor):
 
     def visit_Assign(self, node):
         targets, value = self.super.visit_Assign(node)
-        return f"{node['lineno']:>2}: {self.indentation_level * Visitor.INDENTATION}{', '.join(targets)} = {value}"
+        return f"{node[AstTypes.Generic.lineno]:>2}: {self.indentation_level * Visitor.INDENTATION}{', '.join(targets)} = {value}"
 
 
     def visit_Compare(self, node):
-        left = self.visit_operand(node['left'])
-        comparators = list(self.visit_operand(node) for node in node['comparators'])
-        ops = self.visit_ops(node['ops'])
+        left = self.visit_Compare_operand(node[AstTypes.Compare.left])
+        comparators = list(self.visit_Compare_operand(node) for node in node[AstTypes.Compare.comparators])
+        ops = self.visit_Compare_ops(node[AstTypes.Compare.ops])
         return f"{left} {', '.join(ops)} {','.join(comparators)}"
 
 
@@ -45,7 +44,7 @@ class TaintedFlowSrcVisitor(Visitor):
 
 
     def visit_Call(self, node):
-        return f"{self.visit_Call_func(node['func'])}({self.visit_Call_args(node['args'])})"
+        return f"{self.visit_Call_func(node[AstTypes.Call.func])}({self.visit_Call_args(node[AstTypes.Call.args])})"
 
 
     def visit_While(self, node):
@@ -55,7 +54,7 @@ class TaintedFlowSrcVisitor(Visitor):
         (test, body) = self.super.visit_While(node)
         self.indentation_level -= 1
 
-        representation = f"{node['lineno']:>2}: {indentation}while ({test}):\n"
+        representation = f"{node[AstTypes.Generic.lineno]:>2}: {indentation}while ({test}):\n"
         representation += "\n".join(body)
         return representation
 
@@ -67,17 +66,17 @@ class TaintedFlowSrcVisitor(Visitor):
         (test, body, orelse) = self.super.visit_If(node)
         self.indentation_level -= 1
 
-        representation = f"{node['lineno']:>2}: {indentation}if({test}):\n"
+        representation = f"{node[AstTypes.Generic.lineno]:>2}: {indentation}if({test}):\n"
         representation += "\n".join(body)
         if orelse:
-            representation += f"\n{node['lineno']+len(body):>2}: {indentation}else:\n"
+            representation += f"\n{node[AstTypes.Generic.lineno]+len(body):>2}: {indentation}else:\n"
             representation += "\n".join(orelse)
         return representation
 
 
     def visit_Expr(self, node):
         value = self.super.visit_Expr(node)
-        return f"{node['lineno']:>2}: {self.indentation_level * Visitor.INDENTATION}{value}"
+        return f"{node[AstTypes.Generic.lineno]:>2}: {self.indentation_level * Visitor.INDENTATION}{value}"
 
 
     def visit_BinOp(self, node):
@@ -86,16 +85,7 @@ class TaintedFlowSrcVisitor(Visitor):
 
 
     def visit_Name(self, node):
-        # return f"{node[TaintQualifer.__name__]} {self.super.visit_Name(node)}"
-        return f"{node[TaintQualifer.__name__]} {node[Keys.SSA_NAME]}"
-
-    def visit_Str(self, node):
-        return f"{node[TaintQualifer.__name__]} {self.super.visit_Str(node)}"
-
-
-    def visit_Num(self, node):
-        return f"{node[TaintQualifer.__name__]} {node['n']}"
-
+        return f"{node[TaintQualifer.__name__]} {self.super.visit_Name(node)}"
 
     def visit_Constant(self, node):
         return f"{node[TaintQualifer.__name__]} {self.super.visit_Constant(node)}"

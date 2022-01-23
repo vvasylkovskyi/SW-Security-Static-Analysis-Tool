@@ -1,4 +1,5 @@
-from visitors import Visitor
+from visitors import Visitor, AstTypes
+
 
 class FlowCategory:
     SOURCE = "sources"
@@ -18,9 +19,9 @@ class InstantiationVisitor(Visitor):
         super(InstantiationVisitor, self).__init__(ast)
 
         self.pattern = kwargs
-        self.sources = self.pattern['sources']
-        self.sinks = self.pattern['sinks']
-        self.sanitizers = self.pattern['sanitizers']
+        self.sources = self.pattern[FlowCategory.SOURCE]
+        self.sinks = self.pattern[FlowCategory.SINK]
+        self.sanitizers = self.pattern[FlowCategory.SANITIZER]
 
         self.instantiated = set(self.sources).union(self.sinks) #variables only
 
@@ -62,49 +63,51 @@ class InstantiationVisitor(Visitor):
             self.assign_FlowCategory(node, name)
 
 
-    def visit_BinOp_operand(self, node):
-        if node['ast_type'] == 'Name':
-            self.visit_Name_for_value(node)
-        elif node['ast_type'] == 'Call':
-            self.visit_Call(node)
-        elif node['ast_type'] == 'BinOp':
-            self.visit_BinOp(node)
+    def visit_Compare_operand(self, node):
+        ast_type = node[AstTypes.Generic.ast_type]
+        if ast_type == AstTypes.Name.Key:
+            return self.visit_Name_for_value(node)
+        elif ast_type == AstTypes.Call.Key:
+            return self.visit_Call(node)
+        elif ast_type == AstTypes.BinOp.Key:
+            return self.visit_BinOp(node)
+
+
+    def visit_Compare_comparators(self, nodes):
+        for node in nodes:
+            self.visit_Compare_operand(node)
 
 
     def visit_Compare(self, node):
-        self.visit_BinOp_operand(node['left'])
-        for node in node['comparators']:
-            self.visit_BinOp_operand(node)
+
+        self.visit_Compare_operand(node[AstTypes.Compare.left])
+        self.visit_Compare_comparators(node[AstTypes.Compare.comparators])
 
 
-    def visit_test(self, node):
-        ast_type = node['ast_type']
-        if ast_type == 'Compare':
-            self.visit_Compare(node)
-        elif ast_type == 'Name':
-            self.visit_Name_for_value(node)
+    def visit_If_test(self, node):
+        ast_type = node[AstTypes.Generic.ast_type]
+        if ast_type == AstTypes.Name.Key:
+            return self.visit_Name_for_value(node)
+        elif ast_type == AstTypes.Compare.Key:
+            return self.visit_Compare(node)
 
 
     def visit_BinOp_operand_as_Call_arg(self, node, func_flow_category):
         node[CallArgKeys.Call_arg_CallFlowCategory] = func_flow_category
-        ast_type = node['ast_type']
-        if ast_type == 'Name':
-            self.visit_Name_for_value(node)
-        elif ast_type == 'Call':
-            self.visit_Call(node)
-        elif ast_type == 'BinOp':
-            self.visit_BinOp_as_Call_arg(node, func_flow_category)
-        elif ast_type == 'Str':
-            self.visit_Str(node)
-        elif ast_type == 'Num':
-            self.visit_Num(node)
-        elif ast_type == 'Constant':
+        ast_type = node[AstTypes.Generic.ast_type]
+        if ast_type == AstTypes.Name.Key:
+            return self.visit_Name_for_value(node)
+        elif ast_type == AstTypes.BinOp.Key:
+            return self.visit_BinOp_as_Call_arg(node, func_flow_category)
+        elif ast_type == AstTypes.Call.Key:
+            return self.visit_Call(node)
+        elif ast_type == AstTypes.Constant.Key:
             return self.visit_Constant(node)
 
 
     def visit_BinOp_as_Call_arg(self, node, func_flow_category):
-        self.visit_BinOp_operand_as_Call_arg(node['left'], func_flow_category)
-        self.visit_BinOp_operand_as_Call_arg(node['right'], func_flow_category)
+        self.visit_BinOp_operand_as_Call_arg(node[AstTypes.BinOp.left], func_flow_category)
+        self.visit_BinOp_operand_as_Call_arg(node[AstTypes.BinOp.right], func_flow_category)
 
 
     def visit_Call_arg(self, node, arg_name, func_flow_category):
@@ -112,19 +115,15 @@ class InstantiationVisitor(Visitor):
         node[CallArgKeys.Call_arg] = arg_name
         node[CallArgKeys.Call_arg_CallFlowCategory] = func_flow_category
 
-        node_ast_type = node['ast_type']
-        if node_ast_type == 'Name':
-            self.visit_Name_for_value(node)
-        elif node_ast_type == 'Call':
-            self.visit_Call(node)
-        elif node_ast_type == 'BinOp':
-            self.visit_BinOp_as_Call_arg(node, func_flow_category)
-        elif node_ast_type == 'Constant':
+        ast_type = node[AstTypes.Generic.ast_type]
+        if ast_type == AstTypes.Name.Key:
+            return self.visit_Name_for_value(node)
+        elif ast_type == AstTypes.BinOp.Key:
+            return self.visit_BinOp_as_Call_arg(node, func_flow_category)
+        elif ast_type == AstTypes.Call.Key:
+            return self.visit_Call(node)
+        elif ast_type == AstTypes.Constant.Key:
             return self.visit_Constant(node)
-        elif node_ast_type == 'Str':
-            self.visit_Str(node)
-        elif node_ast_type == 'Num':
-            self.visit_Num(node)
 
 
     def visit_Call_args(self, nodes, func_name, func_flow_category):
@@ -139,19 +138,9 @@ class InstantiationVisitor(Visitor):
 
 
     def visit_Call(self, node):
-        name, flow_category = self.visit_Call_func(node['func'])
-        self.visit_Call_args(node['args'], name, flow_category)
+        name, flow_category = self.visit_Call_func(node[AstTypes.Call.func])
+        self.visit_Call_args(node[AstTypes.Call.args], name, flow_category)
 
 
     def visit_Constant(self, node):
         node[FlowCategory.__name__] = FlowCategory.REGULAR
-
-
-    def visit_Str(self, node):
-        self.visit_Constant(node)
-
-
-    def visit_Num(self, node):
-        self.visit_Constant(node)
-
-
