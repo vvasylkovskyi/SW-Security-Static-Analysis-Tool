@@ -67,7 +67,7 @@ def pprint_outputs():
 def run(test):
     print()
     print(test)
-    analysis = tf_analyser.main(test.ast, test.patterns)
+    analysis = tf_analyser.main(test.ast, test.patterns, debug=True)
     print()
     # output = load_json(t.output)
     # assert analysis==output, f"{analysis} != {output}"

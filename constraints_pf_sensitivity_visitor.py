@@ -27,7 +27,7 @@ class ConstraintsPathFlowSenstivityVisitor(Visitor):
 
 
     @property
-    def constraints(self):
+    def scoped_constraints(self):
         return self._scoped_constraints
 
 

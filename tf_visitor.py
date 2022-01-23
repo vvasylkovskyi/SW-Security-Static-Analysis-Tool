@@ -44,8 +44,7 @@ class TaintedFlowVisitor(Visitor):
             self._labels_map[node[CallArgKeys.Call_arg]] = node[CallArgKeys.Call_arg_TaintQualifer]
 
 
-    def visit_Name(self, node):
-        name = self.super.visit_Name(node)
+    def assign_taint_qualifier(self, node, name):
         if not name in self._labels_map:
             node_flow_category = node[FlowCategory.__name__]
 
@@ -65,6 +64,11 @@ class TaintedFlowVisitor(Visitor):
         self.check_for_Call_arg(node)
 
         node[TaintQualifer.__name__] = self._labels_map[name]
+
+
+    def visit_Name(self, node):
+        name = self.super.visit_Name(node)
+        self.assign_taint_qualifier(node, name)
 
 
     def visit_Call_args(self, nodes):

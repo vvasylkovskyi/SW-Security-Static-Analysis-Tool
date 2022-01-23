@@ -1,0 +1,2116 @@
+
+1a: basic-flow
+
+SOURCE:
+a = ''
+b = c()
+d(a)
+e(b)
+
+VARIABLE_SSA:
+{((True, True),): defaultdict(<class 'list'>,
+                              {'a': ['a_0'],
+                               'b': ['b_0'],
+                               'c': ['c_0'],
+                               'd': ['d_0'],
+                               'e': ['e_0']})}
+
+SSA_VARIABLE:
+{'a_0': 'a', 'b_0': 'b', 'c_0': 'c', 'd_0': 'd', 'e_0': 'e'}
+
+PATTERN:
+{'implicit': 'no',
+ 'sanitizers': [],
+ 'sinks': ['d', 'e'],
+ 'sources': ['c'],
+ 'vulnerability': 'A'}
+
+SOURCE WITH TYPE QUALIFIERS:
+ 1: α a_0 = untainted ''
+ 2: β b_0 = tainted c_0()
+ 3: untainted d_0(untainted d_arg0 α a_0)
+ 4: untainted e_0(untainted e_arg0 β b_0)
+
+LABELS:
+{'a_0': 'α',
+ 'b_0': 'β',
+ 'c_0': 'tainted',
+ 'd_0': 'untainted',
+ 'd_arg0': 'untainted',
+ 'e_0': 'untainted',
+ 'e_arg0': 'untainted'}
+
+SCOPED_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: untainted <= α,
+                                2: tainted <= β,
+                                3: α <= untainted,
+                                4: β <= untainted]})
+
+PATH_FEASIBILITY_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: untainted <= α,
+                                2: tainted <= β,
+                                3: α <= untainted,
+                                4: β <= untainted]})
+
+
+1b: basic-flow
+
+SOURCE:
+a = ''
+a = b()
+c = a
+d = c
+e(d)
+c = ''
+
+VARIABLE_SSA:
+{((True, True),): defaultdict(<class 'list'>,
+                              {'a': ['a_0', 'a_1'],
+                               'b': ['b_0'],
+                               'c': ['c_0', 'c_1'],
+                               'd': ['d_0'],
+                               'e': ['e_0']})}
+
+SSA_VARIABLE:
+{'a_0': 'a',
+ 'a_1': 'a',
+ 'b_0': 'b',
+ 'c_0': 'c',
+ 'c_1': 'c',
+ 'd_0': 'd',
+ 'e_0': 'e'}
+
+PATTERN:
+{'implicit': 'yes',
+ 'sanitizers': [],
+ 'sinks': ['d', 'e'],
+ 'sources': ['b', 'c'],
+ 'vulnerability': 'A'}
+
+SOURCE WITH TYPE QUALIFIERS:
+ 1: α a_0 = untainted ''
+ 2: β a_1 = tainted b_0()
+ 3: tainted c_0 = β a_1
+ 4: untainted d_0 = tainted c_0
+ 5: untainted e_0(untainted e_arg0 untainted d_0)
+ 6: tainted c_1 = untainted ''
+
+LABELS:
+{'a_0': 'α',
+ 'a_1': 'β',
+ 'b_0': 'tainted',
+ 'c_0': 'tainted',
+ 'c_1': 'tainted',
+ 'd_0': 'untainted',
+ 'e_0': 'untainted',
+ 'e_arg0': 'untainted'}
+
+SCOPED_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: untainted <= α,
+                                2: tainted <= β,
+                                3: β <= tainted,
+                                4: tainted <= untainted,
+                                5: untainted <= untainted,
+                                6: untainted <= tainted]})
+
+PATH_FEASIBILITY_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: untainted <= α,
+                                2: tainted <= β,
+                                3: β <= tainted,
+                                4: tainted <= untainted,
+                                5: untainted <= untainted,
+                                6: untainted <= tainted]})
+
+
+2: expr-binary-ops
+
+SOURCE:
+a = b()
+c = s('ola',a)
+f = e(c + 'oi' + d + 'hi',a)
+
+VARIABLE_SSA:
+{((True, True),): defaultdict(<class 'list'>,
+                              {'a': ['a_0'],
+                               'b': ['b_0'],
+                               'c': ['c_0'],
+                               'd': ['d_0'],
+                               'e': ['e_0'],
+                               'f': ['f_0'],
+                               's': ['s_0']})}
+
+SSA_VARIABLE:
+{'a_0': 'a',
+ 'b_0': 'b',
+ 'c_0': 'c',
+ 'd_0': 'd',
+ 'e_0': 'e',
+ 'f_0': 'f',
+ 's_0': 's'}
+
+PATTERN:
+{'implicit': 'yes',
+ 'sanitizers': [],
+ 'sinks': ['d', 'e'],
+ 'sources': ['a'],
+ 'vulnerability': 'A'}
+
+SOURCE WITH TYPE QUALIFIERS:
+ 1: tainted a_0 = α b_0()
+ 2: γ c_0 = β s_0(tainted s_arg0 untainted 'ola', tainted s_arg1 tainted a_0)
+ 3: δ f_0 = untainted e_0(untainted e_arg0 γ c_0 + untainted 'oi' + untainted d_0 + untainted 'hi', untainted e_arg1 tainted a_0)
+
+LABELS:
+{'a_0': 'tainted',
+ 'b_0': 'α',
+ 'c_0': 'γ',
+ 'd_0': 'untainted',
+ 'e_0': 'untainted',
+ 'e_arg0': 'untainted',
+ 'e_arg1': 'untainted',
+ 'f_0': 'δ',
+ 's_0': 'β',
+ 's_arg0': 'tainted',
+ 's_arg1': 'tainted'}
+
+SCOPED_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: α <= tainted,
+                                2: untainted <= tainted,
+                                2: tainted <= tainted,
+                                2: β <= γ,
+                                3: γ <= untainted,
+                                3: untainted <= untainted,
+                                3: untainted <= untainted,
+                                3: untainted <= untainted,
+                                3: tainted <= untainted,
+                                3: untainted <= δ]})
+
+PATH_FEASIBILITY_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: α <= tainted,
+                                2: tainted <= tainted,
+                                2: untainted <= tainted,
+                                2: β <= γ,
+                                3: tainted <= untainted,
+                                3: untainted <= untainted,
+                                3: untainted <= untainted,
+                                3: untainted <= untainted,
+                                3: untainted <= δ,
+                                3: γ <= untainted]})
+
+PATTERN:
+{'implicit': 'yes',
+ 'sanitizers': ['s'],
+ 'sinks': ['a', 'e'],
+ 'sources': ['b', 'd'],
+ 'vulnerability': 'B'}
+
+SOURCE WITH TYPE QUALIFIERS:
+ 1: untainted a_0 = tainted b_0()
+ 2: α c_0 = untainted s_0(tainted s_arg0 untainted 'ola', tainted s_arg1 untainted a_0)
+ 3: β f_0 = untainted e_0(untainted e_arg0 α c_0 + untainted 'oi' + tainted d_0 + untainted 'hi', untainted e_arg1 untainted a_0)
+
+LABELS:
+{'a_0': 'untainted',
+ 'b_0': 'tainted',
+ 'c_0': 'α',
+ 'd_0': 'tainted',
+ 'e_0': 'untainted',
+ 'e_arg0': 'untainted',
+ 'e_arg1': 'untainted',
+ 'f_0': 'β',
+ 's_0': 'untainted',
+ 's_arg0': 'tainted',
+ 's_arg1': 'tainted'}
+
+SCOPED_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: tainted <= untainted,
+                                2: untainted <= tainted,
+                                2: untainted <= tainted,
+                                2: untainted <= α,
+                                3: α <= untainted,
+                                3: untainted <= untainted,
+                                3: tainted <= untainted,
+                                3: untainted <= untainted,
+                                3: untainted <= untainted,
+                                3: untainted <= β]})
+
+PATH_FEASIBILITY_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: tainted <= untainted,
+                                2: untainted <= tainted,
+                                2: untainted <= tainted,
+                                2: untainted <= α,
+                                3: tainted <= untainted,
+                                3: untainted <= untainted,
+                                3: untainted <= untainted,
+                                3: untainted <= untainted,
+                                3: untainted <= β,
+                                3: α <= untainted]})
+
+
+3a: expr-func-calls
+
+SOURCE:
+a = b('ola')
+c = d('oi',e(f(a)),a)
+e(c)
+
+VARIABLE_SSA:
+{((True, True),): defaultdict(<class 'list'>,
+                              {'a': ['a_0'],
+                               'b': ['b_0'],
+                               'c': ['c_0'],
+                               'd': ['d_0'],
+                               'e': ['e_0'],
+                               'f': ['f_0']})}
+
+SSA_VARIABLE:
+{'a_0': 'a', 'b_0': 'b', 'c_0': 'c', 'd_0': 'd', 'e_0': 'e', 'f_0': 'f'}
+
+PATTERN:
+{'implicit': 'yes',
+ 'sanitizers': ['f'],
+ 'sinks': ['c', 'e'],
+ 'sources': ['b'],
+ 'vulnerability': 'A'}
+
+SOURCE WITH TYPE QUALIFIERS:
+ 1: α a_0 = tainted b_0(tainted b_arg0 untainted 'ola')
+ 2: untainted c_0 = β d_0(tainted d_arg0 untainted 'oi', tainted d_arg1 untainted e_0(untainted e_arg0 untainted f_0(tainted f_arg0 α a_0)), tainted d_arg2 α a_0)
+ 3: untainted e_0(untainted e_arg0 untainted c_0)
+
+LABELS:
+{'a_0': 'α',
+ 'b_0': 'tainted',
+ 'b_arg0': 'tainted',
+ 'c_0': 'untainted',
+ 'd_0': 'β',
+ 'd_arg0': 'tainted',
+ 'd_arg1': 'tainted',
+ 'd_arg2': 'tainted',
+ 'e_0': 'untainted',
+ 'e_arg0': 'untainted',
+ 'f_0': 'untainted',
+ 'f_arg0': 'tainted'}
+
+SCOPED_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: untainted <= tainted,
+                                1: tainted <= α,
+                                2: untainted <= tainted,
+                                2: α <= tainted,
+                                2: untainted <= untainted,
+                                2: untainted <= tainted,
+                                2: α <= tainted,
+                                2: β <= untainted,
+                                3: untainted <= untainted]})
+
+PATH_FEASIBILITY_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: tainted <= α,
+                                1: untainted <= tainted,
+                                2: untainted <= tainted,
+                                2: untainted <= tainted,
+                                2: untainted <= untainted,
+                                2: α <= tainted,
+                                2: α <= tainted,
+                                2: β <= untainted,
+                                3: untainted <= untainted]})
+
+PATTERN:
+{'implicit': 'no',
+ 'sanitizers': ['e', 'd'],
+ 'sinks': ['c'],
+ 'sources': ['b'],
+ 'vulnerability': 'B'}
+
+SOURCE WITH TYPE QUALIFIERS:
+ 1: α a_0 = tainted b_0(tainted b_arg0 untainted 'ola')
+ 2: untainted c_0 = untainted d_0(tainted d_arg0 untainted 'oi', tainted d_arg1 untainted e_0(tainted e_arg0 β f_0(tainted f_arg0 α a_0)), tainted d_arg2 α a_0)
+ 3: untainted e_0(tainted e_arg0 untainted c_0)
+
+LABELS:
+{'a_0': 'α',
+ 'b_0': 'tainted',
+ 'b_arg0': 'tainted',
+ 'c_0': 'untainted',
+ 'd_0': 'untainted',
+ 'd_arg0': 'tainted',
+ 'd_arg1': 'tainted',
+ 'd_arg2': 'tainted',
+ 'e_0': 'untainted',
+ 'e_arg0': 'tainted',
+ 'f_0': 'β',
+ 'f_arg0': 'tainted'}
+
+SCOPED_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: untainted <= tainted,
+                                1: tainted <= α,
+                                2: untainted <= tainted,
+                                2: α <= tainted,
+                                2: β <= tainted,
+                                2: untainted <= tainted,
+                                2: α <= tainted,
+                                2: untainted <= untainted,
+                                3: untainted <= tainted]})
+
+PATH_FEASIBILITY_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: tainted <= α,
+                                1: untainted <= tainted,
+                                2: untainted <= tainted,
+                                2: untainted <= untainted,
+                                2: untainted <= tainted,
+                                2: α <= tainted,
+                                2: α <= tainted,
+                                2: β <= tainted,
+                                3: untainted <= tainted]})
+
+
+3b: expr-func-calls
+
+SOURCE:
+z(t(a('username')))
+
+VARIABLE_SSA:
+{((True, True),): defaultdict(<class 'list'>,
+                              {'a': ['a_0'],
+                               't': ['t_0'],
+                               'z': ['z_0']})}
+
+SSA_VARIABLE:
+{'a_0': 'a', 't_0': 't', 'z_0': 'z'}
+
+PATTERN:
+{'implicit': 'yes',
+ 'sanitizers': ['t'],
+ 'sinks': ['z'],
+ 'sources': ['a'],
+ 'vulnerability': 'A'}
+
+SOURCE WITH TYPE QUALIFIERS:
+ 1: untainted z_0(untainted z_arg0 untainted t_0(tainted t_arg0 tainted a_0(tainted a_arg0 untainted 'username')))
+
+LABELS:
+{'a_0': 'tainted',
+ 'a_arg0': 'tainted',
+ 't_0': 'untainted',
+ 't_arg0': 'tainted',
+ 'z_0': 'untainted',
+ 'z_arg0': 'untainted'}
+
+SCOPED_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: untainted <= tainted,
+                                1: tainted <= tainted,
+                                1: untainted <= untainted]})
+
+PATH_FEASIBILITY_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: tainted <= tainted,
+                                1: untainted <= tainted,
+                                1: untainted <= untainted]})
+
+PATTERN:
+{'implicit': 'no',
+ 'sanitizers': ['z'],
+ 'sinks': ['t'],
+ 'sources': ['a'],
+ 'vulnerability': 'B'}
+
+SOURCE WITH TYPE QUALIFIERS:
+ 1: untainted z_0(tainted z_arg0 untainted t_0(untainted t_arg0 tainted a_0(tainted a_arg0 untainted 'username')))
+
+LABELS:
+{'a_0': 'tainted',
+ 'a_arg0': 'tainted',
+ 't_0': 'untainted',
+ 't_arg0': 'untainted',
+ 'z_0': 'untainted',
+ 'z_arg0': 'tainted'}
+
+SCOPED_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: untainted <= tainted,
+                                1: tainted <= untainted,
+                                1: untainted <= tainted]})
+
+PATH_FEASIBILITY_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: tainted <= untainted,
+                                1: untainted <= tainted,
+                                1: untainted <= tainted]})
+
+
+4a: conds-branching
+
+SOURCE:
+if(c > 0):
+    a = b()
+    if(c < 3):
+        a = f(a)
+    else:
+        c = d(a)
+e(a,c)
+
+VARIABLE_SSA:
+{((True, True),): defaultdict(<class 'list'>,
+                              {'a': ['a_2'],
+                               'c': ['c_0'],
+                               'e': ['e_0']}),
+ ((True, True), ('c > 0', True)): defaultdict(<class 'list'>,
+                                              {'a': ['a_0'],
+                                               'b': ['b_0'],
+                                               'c': ['c_0']}),
+ ((True, True), ('c > 0', True), ('c < 3', False)): defaultdict(<class 'list'>,
+                                                                {'a': ['a_0'],
+                                                                 'b': ['b_0'],
+                                                                 'c': ['c_0',
+                                                                       'c_1'],
+                                                                 'd': ['d_0']}),
+ ((True, True), ('c > 0', True), ('c < 3', True)): defaultdict(<class 'list'>,
+                                                               {'a': ['a_0',
+                                                                      'a_1'],
+                                                                'b': ['b_0'],
+                                                                'c': ['c_0'],
+                                                                'f': ['f_0']})}
+
+SSA_VARIABLE:
+{'a_0': 'a',
+ 'a_1': 'a',
+ 'a_2': 'a',
+ 'b_0': 'b',
+ 'c_0': 'c',
+ 'c_1': 'c',
+ 'd_0': 'd',
+ 'e_0': 'e',
+ 'f_0': 'f'}
+
+PATTERN:
+{'implicit': 'no',
+ 'sanitizers': ['t'],
+ 'sinks': ['e'],
+ 'sources': ['f', 'c'],
+ 'vulnerability': 'A'}
+
+SOURCE WITH TYPE QUALIFIERS:
+ 1: if(tainted c_0 > untainted 0):
+ 2:     β a_0 = α b_0()
+ 3:     if(tainted c_0 < untainted 3):
+ 4:         γ a_1 = tainted f_0(tainted f_arg0 β a_0)
+ 4:     else:
+ 6:         tainted c_1 = δ d_0(tainted d_arg0 β a_0)
+ 7: untainted e_0(untainted e_arg0 ε a_2, untainted e_arg1 tainted c_0)
+
+LABELS:
+{'a_0': 'β',
+ 'a_1': 'γ',
+ 'a_2': 'ε',
+ 'b_0': 'α',
+ 'c_0': 'tainted',
+ 'c_1': 'tainted',
+ 'd_0': 'δ',
+ 'd_arg0': 'tainted',
+ 'e_0': 'untainted',
+ 'e_arg0': 'untainted',
+ 'e_arg1': 'untainted',
+ 'f_0': 'tainted',
+ 'f_arg0': 'tainted'}
+
+SCOPED_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 7: ε <= untainted,  7: tainted <= untainted],
+             ((True, True), ('c > 0', True)): [ 2: α <= β],
+             ((True, True), ('c > 0', True), ('c < 3', False)): [ 6: β <= tainted,
+                                                                  6: δ <= tainted],
+             ((True, True), ('c > 0', True), ('c < 3', True)): [ 4: β <= tainted,
+                                                                 4: tainted <= γ]})
+
+PATH_FEASIBILITY_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 7: tainted <= untainted,  7: ε <= untainted],
+             ((True, True), ('c > 0', True)): [ 2: α <= β,
+                                                7: tainted <= untainted,
+                                                7: ε <= untainted],
+             ((True, True), ('c > 0', True), ('c < 3', False)): [ 2: α <= β,
+                                                                  6: β <= tainted,
+                                                                  6: δ <= tainted,
+                                                                  7: tainted <= untainted,
+                                                                  7: ε <= untainted],
+             ((True, True), ('c > 0', True), ('c < 3', True)): [ 2: α <= β,
+                                                                 4: tainted <= γ,
+                                                                 4: β <= tainted,
+                                                                 7: tainted <= untainted,
+                                                                 7: ε <= untainted]})
+
+PATTERN:
+{'implicit': 'no',
+ 'sanitizers': [],
+ 'sinks': ['c', 'e'],
+ 'sources': ['d'],
+ 'vulnerability': 'B'}
+
+SOURCE WITH TYPE QUALIFIERS:
+ 1: if(untainted c_0 > untainted 0):
+ 2:     β a_0 = α b_0()
+ 3:     if(untainted c_0 < untainted 3):
+ 4:         δ a_1 = γ f_0(tainted f_arg0 β a_0)
+ 4:     else:
+ 6:         untainted c_1 = tainted d_0(tainted d_arg0 β a_0)
+ 7: untainted e_0(untainted e_arg0 ε a_2, untainted e_arg1 untainted c_0)
+
+LABELS:
+{'a_0': 'β',
+ 'a_1': 'δ',
+ 'a_2': 'ε',
+ 'b_0': 'α',
+ 'c_0': 'untainted',
+ 'c_1': 'untainted',
+ 'd_0': 'tainted',
+ 'd_arg0': 'tainted',
+ 'e_0': 'untainted',
+ 'e_arg0': 'untainted',
+ 'e_arg1': 'untainted',
+ 'f_0': 'γ',
+ 'f_arg0': 'tainted'}
+
+SCOPED_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 7: ε <= untainted,  7: untainted <= untainted],
+             ((True, True), ('c > 0', True)): [ 2: α <= β],
+             ((True, True), ('c > 0', True), ('c < 3', False)): [ 6: β <= tainted,
+                                                                  6: tainted <= untainted],
+             ((True, True), ('c > 0', True), ('c < 3', True)): [ 4: β <= tainted,
+                                                                 4: γ <= δ]})
+
+PATH_FEASIBILITY_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 7: untainted <= untainted,  7: ε <= untainted],
+             ((True, True), ('c > 0', True)): [ 2: α <= β,
+                                                7: untainted <= untainted,
+                                                7: ε <= untainted],
+             ((True, True), ('c > 0', True), ('c < 3', False)): [ 2: α <= β,
+                                                                  6: tainted <= untainted,
+                                                                  6: β <= tainted,
+                                                                  7: untainted <= untainted,
+                                                                  7: ε <= untainted],
+             ((True, True), ('c > 0', True), ('c < 3', True)): [ 2: α <= β,
+                                                                 4: β <= tainted,
+                                                                 4: γ <= δ,
+                                                                 7: untainted <= untainted,
+                                                                 7: ε <= untainted]})
+
+
+4b: conds-branching
+
+SOURCE:
+a = b()
+if(g == 0):
+    a = ''
+    d = t()
+else:
+    a = c(a,d)
+e(a,d)
+
+VARIABLE_SSA:
+{((True, True),): defaultdict(<class 'list'>,
+                              {'a': ['a_0'],
+                               'b': ['b_0'],
+                               'd': ['d_2'],
+                               'e': ['e_0'],
+                               'g': ['g_0']}),
+ ((True, True), ('g == 0', False)): defaultdict(<class 'list'>,
+                                                {'a': ['a_0', 'a_2'],
+                                                 'b': ['b_0'],
+                                                 'c': ['c_0'],
+                                                 'd': ['d_1'],
+                                                 'g': ['g_0']}),
+ ((True, True), ('g == 0', True)): defaultdict(<class 'list'>,
+                                               {'a': ['a_0', 'a_1'],
+                                                'b': ['b_0'],
+                                                'd': ['d_0'],
+                                                'g': ['g_0'],
+                                                't': ['t_0']})}
+
+SSA_VARIABLE:
+{'a_0': 'a',
+ 'a_1': 'a',
+ 'a_2': 'a',
+ 'b_0': 'b',
+ 'c_0': 'c',
+ 'd_0': 'd',
+ 'd_1': 'd',
+ 'd_2': 'd',
+ 'e_0': 'e',
+ 'g_0': 'g',
+ 't_0': 't'}
+
+PATTERN:
+{'implicit': 'no',
+ 'sanitizers': ['t'],
+ 'sinks': ['e'],
+ 'sources': ['b', 'g'],
+ 'vulnerability': 'A'}
+
+SOURCE WITH TYPE QUALIFIERS:
+ 1: α a_0 = tainted b_0()
+ 2: if(tainted g_0 == untainted 0):
+ 3:     β a_1 = untainted ''
+ 4:     γ d_0 = untainted t_0()
+ 4: else:
+ 6:     ζ a_2 = δ c_0(tainted c_arg0 α a_0, tainted c_arg1 ε d_1)
+ 7: untainted e_0(untainted e_arg0 α a_0, untainted e_arg1 η d_2)
+
+LABELS:
+{'a_0': 'α',
+ 'a_1': 'β',
+ 'a_2': 'ζ',
+ 'b_0': 'tainted',
+ 'c_0': 'δ',
+ 'c_arg0': 'tainted',
+ 'c_arg1': 'tainted',
+ 'd_0': 'γ',
+ 'd_1': 'ε',
+ 'd_2': 'η',
+ 'e_0': 'untainted',
+ 'e_arg0': 'untainted',
+ 'e_arg1': 'untainted',
+ 'g_0': 'tainted',
+ 't_0': 'untainted'}
+
+SCOPED_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: tainted <= α,
+                                7: α <= untainted,
+                                7: η <= untainted],
+             ((True, True), ('g == 0', False)): [ 6: α <= tainted,
+                                                  6: ε <= tainted,
+                                                  6: δ <= ζ],
+             ((True, True), ('g == 0', True)): [ 3: untainted <= β,
+                                                 4: untainted <= γ]})
+
+PATH_FEASIBILITY_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: tainted <= α,
+                                7: α <= untainted,
+                                7: η <= untainted],
+             ((True, True), ('g == 0', False)): [ 1: tainted <= α,
+                                                  6: α <= tainted,
+                                                  6: δ <= ζ,
+                                                  6: ε <= tainted,
+                                                  7: α <= untainted,
+                                                  7: η <= untainted],
+             ((True, True), ('g == 0', True)): [ 1: tainted <= α,
+                                                 3: untainted <= β,
+                                                 4: untainted <= γ,
+                                                 7: α <= untainted,
+                                                 7: η <= untainted]})
+
+PATTERN:
+{'implicit': 'no',
+ 'sanitizers': [],
+ 'sinks': ['a'],
+ 'sources': ['t', 'g'],
+ 'vulnerability': 'B'}
+
+SOURCE WITH TYPE QUALIFIERS:
+ 1: untainted a_0 = α b_0()
+ 2: if(tainted g_0 == untainted 0):
+ 3:     untainted a_1 = untainted ''
+ 4:     β d_0 = tainted t_0()
+ 4: else:
+ 6:     untainted a_2 = γ c_0(tainted c_arg0 untainted a_0, tainted c_arg1 δ d_1)
+ 7: ε e_0(tainted e_arg0 untainted a_0, tainted e_arg1 ζ d_2)
+
+LABELS:
+{'a_0': 'untainted',
+ 'a_1': 'untainted',
+ 'a_2': 'untainted',
+ 'b_0': 'α',
+ 'c_0': 'γ',
+ 'c_arg0': 'tainted',
+ 'c_arg1': 'tainted',
+ 'd_0': 'β',
+ 'd_1': 'δ',
+ 'd_2': 'ζ',
+ 'e_0': 'ε',
+ 'e_arg0': 'tainted',
+ 'e_arg1': 'tainted',
+ 'g_0': 'tainted',
+ 't_0': 'tainted'}
+
+SCOPED_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: α <= untainted,
+                                7: untainted <= tainted,
+                                7: ζ <= tainted],
+             ((True, True), ('g == 0', False)): [ 6: untainted <= tainted,
+                                                  6: δ <= tainted,
+                                                  6: γ <= untainted],
+             ((True, True), ('g == 0', True)): [ 3: untainted <= untainted,
+                                                 4: tainted <= β]})
+
+PATH_FEASIBILITY_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: α <= untainted,
+                                7: untainted <= tainted,
+                                7: ζ <= tainted],
+             ((True, True), ('g == 0', False)): [ 1: α <= untainted,
+                                                  6: untainted <= tainted,
+                                                  6: γ <= untainted,
+                                                  6: δ <= tainted,
+                                                  7: untainted <= tainted,
+                                                  7: ζ <= tainted],
+             ((True, True), ('g == 0', True)): [ 1: α <= untainted,
+                                                 3: untainted <= untainted,
+                                                 4: tainted <= β,
+                                                 7: untainted <= tainted,
+                                                 7: ζ <= tainted]})
+
+PATTERN:
+{'implicit': 'no',
+ 'sanitizers': ['c'],
+ 'sinks': ['e'],
+ 'sources': ['a', 'g'],
+ 'vulnerability': 'C'}
+
+SOURCE WITH TYPE QUALIFIERS:
+ 1: tainted a_0 = α b_0()
+ 2: if(tainted g_0 == untainted 0):
+ 3:     tainted a_1 = untainted ''
+ 4:     γ d_0 = β t_0()
+ 4: else:
+ 6:     tainted a_2 = untainted c_0(tainted c_arg0 tainted a_0, tainted c_arg1 δ d_1)
+ 7: untainted e_0(untainted e_arg0 tainted a_0, untainted e_arg1 ε d_2)
+
+LABELS:
+{'a_0': 'tainted',
+ 'a_1': 'tainted',
+ 'a_2': 'tainted',
+ 'b_0': 'α',
+ 'c_0': 'untainted',
+ 'c_arg0': 'tainted',
+ 'c_arg1': 'tainted',
+ 'd_0': 'γ',
+ 'd_1': 'δ',
+ 'd_2': 'ε',
+ 'e_0': 'untainted',
+ 'e_arg0': 'untainted',
+ 'e_arg1': 'untainted',
+ 'g_0': 'tainted',
+ 't_0': 'β'}
+
+SCOPED_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: α <= tainted,
+                                7: tainted <= untainted,
+                                7: ε <= untainted],
+             ((True, True), ('g == 0', False)): [ 6: tainted <= tainted,
+                                                  6: δ <= tainted,
+                                                  6: untainted <= tainted],
+             ((True, True), ('g == 0', True)): [ 3: untainted <= tainted,
+                                                 4: β <= γ]})
+
+PATH_FEASIBILITY_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: α <= tainted,
+                                7: tainted <= untainted,
+                                7: ε <= untainted],
+             ((True, True), ('g == 0', False)): [ 1: α <= tainted,
+                                                  6: tainted <= tainted,
+                                                  6: untainted <= tainted,
+                                                  6: δ <= tainted,
+                                                  7: tainted <= untainted,
+                                                  7: ε <= untainted],
+             ((True, True), ('g == 0', True)): [ 1: α <= tainted,
+                                                 3: untainted <= tainted,
+                                                 4: β <= γ,
+                                                 7: tainted <= untainted,
+                                                 7: ε <= untainted]})
+
+
+5a: loops-unfolding
+
+SOURCE:
+a = b('nis')
+while (e == ''):
+    c = d(a)
+    e = f(c)
+    a = e
+g = h(a)
+
+VARIABLE_SSA:
+{((True, True),): defaultdict(<class 'list'>,
+                              {'a': ['a_0'],
+                               'b': ['b_0'],
+                               'e': ['e_0'],
+                               'g': ['g_0'],
+                               'h': ['h_0']}),
+ ((True, True), ("e == ''", True)): defaultdict(<class 'list'>,
+                                                {'a': ['a_0', 'a_1'],
+                                                 'b': ['b_0'],
+                                                 'c': ['c_0'],
+                                                 'd': ['d_0'],
+                                                 'e': ['e_0', 'e_1'],
+                                                 'f': ['f_0']})}
+
+SSA_VARIABLE:
+{'a_0': 'a',
+ 'a_1': 'a',
+ 'b_0': 'b',
+ 'c_0': 'c',
+ 'd_0': 'd',
+ 'e_0': 'e',
+ 'e_1': 'e',
+ 'f_0': 'f',
+ 'g_0': 'g',
+ 'h_0': 'h'}
+
+PATTERN:
+{'implicit': 'no',
+ 'sanitizers': ['d'],
+ 'sinks': ['h'],
+ 'sources': ['b', 'e'],
+ 'vulnerability': 'A'}
+
+SOURCE WITH TYPE QUALIFIERS:
+ 1: α a_0 = tainted b_0(tainted b_arg0 untainted 'nis')
+ 2: while (tainted e_0 == untainted ''):
+ 3:     β c_0 = untainted d_0(tainted d_arg0 α a_0)
+ 4:     tainted e_1 = γ f_0(tainted f_arg0 β c_0)
+ 5:     δ a_1 = tainted e_1
+ 6: ε g_0 = untainted h_0(untainted h_arg0 α a_0)
+
+LABELS:
+{'a_0': 'α',
+ 'a_1': 'δ',
+ 'b_0': 'tainted',
+ 'b_arg0': 'tainted',
+ 'c_0': 'β',
+ 'd_0': 'untainted',
+ 'd_arg0': 'tainted',
+ 'e_0': 'tainted',
+ 'e_1': 'tainted',
+ 'f_0': 'γ',
+ 'f_arg0': 'tainted',
+ 'g_0': 'ε',
+ 'h_0': 'untainted',
+ 'h_arg0': 'untainted'}
+
+SCOPED_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: untainted <= tainted,
+                                1: tainted <= α,
+                                6: α <= untainted,
+                                6: untainted <= ε],
+             ((True, True), ("e == ''", True)): [ 3: α <= tainted,
+                                                  3: untainted <= β,
+                                                  4: β <= tainted,
+                                                  4: γ <= tainted,
+                                                  5: tainted <= δ]})
+
+PATH_FEASIBILITY_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: tainted <= α,
+                                1: untainted <= tainted,
+                                6: untainted <= ε,
+                                6: α <= untainted],
+             ((True, True), ("e == ''", True)): [ 1: tainted <= α,
+                                                  1: untainted <= tainted,
+                                                  3: untainted <= β,
+                                                  3: α <= tainted,
+                                                  4: β <= tainted,
+                                                  4: γ <= tainted,
+                                                  5: tainted <= δ,
+                                                  6: untainted <= ε,
+                                                  6: α <= untainted]})
+
+PATTERN:
+{'implicit': 'no',
+ 'sanitizers': ['t'],
+ 'sinks': ['c'],
+ 'sources': ['f', 'e'],
+ 'vulnerability': 'B'}
+
+SOURCE WITH TYPE QUALIFIERS:
+ 1: β a_0 = α b_0(tainted b_arg0 untainted 'nis')
+ 2: while (tainted e_0 == untainted ''):
+ 3:     untainted c_0 = γ d_0(tainted d_arg0 β a_0)
+ 4:     tainted e_1 = tainted f_0(tainted f_arg0 untainted c_0)
+ 5:     δ a_1 = tainted e_1
+ 6: ζ g_0 = ε h_0(tainted h_arg0 β a_0)
+
+LABELS:
+{'a_0': 'β',
+ 'a_1': 'δ',
+ 'b_0': 'α',
+ 'b_arg0': 'tainted',
+ 'c_0': 'untainted',
+ 'd_0': 'γ',
+ 'd_arg0': 'tainted',
+ 'e_0': 'tainted',
+ 'e_1': 'tainted',
+ 'f_0': 'tainted',
+ 'f_arg0': 'tainted',
+ 'g_0': 'ζ',
+ 'h_0': 'ε',
+ 'h_arg0': 'tainted'}
+
+SCOPED_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: untainted <= tainted,
+                                1: α <= β,
+                                6: β <= tainted,
+                                6: ε <= ζ],
+             ((True, True), ("e == ''", True)): [ 3: β <= tainted,
+                                                  3: γ <= untainted,
+                                                  4: untainted <= tainted,
+                                                  4: tainted <= tainted,
+                                                  5: tainted <= δ]})
+
+PATH_FEASIBILITY_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: untainted <= tainted,
+                                1: α <= β,
+                                6: β <= tainted,
+                                6: ε <= ζ],
+             ((True, True), ("e == ''", True)): [ 1: untainted <= tainted,
+                                                  1: α <= β,
+                                                  3: β <= tainted,
+                                                  3: γ <= untainted,
+                                                  4: tainted <= tainted,
+                                                  4: untainted <= tainted,
+                                                  5: tainted <= δ,
+                                                  6: β <= tainted,
+                                                  6: ε <= ζ]})
+
+
+5b: loops-unfolding
+
+SOURCE:
+a = b('nis')
+c = ''
+d = ''
+while (e == ''):
+    c = d
+    if(x == 33):
+        d = a
+    a = s(a + 1)
+q = z(c)
+
+VARIABLE_SSA:
+{((True, True),): defaultdict(<class 'list'>,
+                              {'a': ['a_0'],
+                               'b': ['b_0'],
+                               'c': ['c_0'],
+                               'd': ['d_0'],
+                               'e': ['e_0'],
+                               'q': ['q_0'],
+                               'z': ['z_0']}),
+ ((True, True), ("e == ''", True)): defaultdict(<class 'list'>,
+                                                {'a': ['a_0', 'a_1'],
+                                                 'b': ['b_0'],
+                                                 'c': ['c_0', 'c_1'],
+                                                 'd': ['d_0'],
+                                                 'e': ['e_0'],
+                                                 's': ['s_0'],
+                                                 'x': ['x_0']}),
+ ((True, True), ("e == ''", True), ('x == 33', True)): defaultdict(<class 'list'>,
+                                                                   {'a': ['a_0'],
+                                                                    'b': ['b_0'],
+                                                                    'c': ['c_0',
+                                                                          'c_1'],
+                                                                    'd': ['d_0',
+                                                                          'd_1'],
+                                                                    'e': ['e_0'],
+                                                                    'x': ['x_0']})}
+
+SSA_VARIABLE:
+{'a_0': 'a',
+ 'a_1': 'a',
+ 'b_0': 'b',
+ 'c_0': 'c',
+ 'c_1': 'c',
+ 'd_0': 'd',
+ 'd_1': 'd',
+ 'e_0': 'e',
+ 'q_0': 'q',
+ 's_0': 's',
+ 'x_0': 'x',
+ 'z_0': 'z'}
+
+PATTERN:
+{'implicit': 'no',
+ 'sanitizers': ['s'],
+ 'sinks': ['q'],
+ 'sources': ['b', 'e', 'x'],
+ 'vulnerability': 'A'}
+
+SOURCE WITH TYPE QUALIFIERS:
+ 1: α a_0 = tainted b_0(tainted b_arg0 untainted 'nis')
+ 2: β c_0 = untainted ''
+ 3: γ d_0 = untainted ''
+ 4: while (tainted e_0 == untainted ''):
+ 5:     δ c_1 = γ d_0
+ 6:     if(tainted x_0 == untainted 33):
+ 7:         ε d_1 = α a_0
+ 8:     ζ a_1 = untainted s_0(tainted s_arg0 α a_0 + untainted 1)
+ 9: untainted q_0 = η z_0(tainted z_arg0 β c_0)
+
+LABELS:
+{'a_0': 'α',
+ 'a_1': 'ζ',
+ 'b_0': 'tainted',
+ 'b_arg0': 'tainted',
+ 'c_0': 'β',
+ 'c_1': 'δ',
+ 'd_0': 'γ',
+ 'd_1': 'ε',
+ 'e_0': 'tainted',
+ 'q_0': 'untainted',
+ 's_0': 'untainted',
+ 's_arg0': 'tainted',
+ 'x_0': 'tainted',
+ 'z_0': 'η',
+ 'z_arg0': 'tainted'}
+
+SCOPED_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: untainted <= tainted,
+                                1: tainted <= α,
+                                2: untainted <= β,
+                                3: untainted <= γ,
+                                9: β <= tainted,
+                                9: η <= untainted],
+             ((True, True), ("e == ''", True)): [ 5: γ <= δ,
+                                                  8: α <= tainted,
+                                                  8: untainted <= tainted,
+                                                  8: untainted <= ζ],
+             ((True, True), ("e == ''", True), ('x == 33', True)): [ 7: α <= ε]})
+
+PATH_FEASIBILITY_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: tainted <= α,
+                                1: untainted <= tainted,
+                                2: untainted <= β,
+                                3: untainted <= γ,
+                                9: β <= tainted,
+                                9: η <= untainted],
+             ((True, True), ("e == ''", True)): [ 1: tainted <= α,
+                                                  1: untainted <= tainted,
+                                                  2: untainted <= β,
+                                                  3: untainted <= γ,
+                                                  5: γ <= δ,
+                                                  8: untainted <= tainted,
+                                                  8: untainted <= ζ,
+                                                  8: α <= tainted,
+                                                  9: β <= tainted,
+                                                  9: η <= untainted],
+             ((True, True), ("e == ''", True), ('x == 33', True)): [ 1: tainted <= α,
+                                                                     1: untainted <= tainted,
+                                                                     2: untainted <= β,
+                                                                     3: untainted <= γ,
+                                                                     5: γ <= δ,
+                                                                     7: α <= ε,
+                                                                     8: untainted <= tainted,
+                                                                     8: untainted <= ζ,
+                                                                     8: α <= tainted,
+                                                                     9: β <= tainted,
+                                                                     9: η <= untainted]})
+
+PATTERN:
+{'implicit': 'no',
+ 'sanitizers': [],
+ 'sinks': ['c'],
+ 'sources': ['b', 'e', 'x'],
+ 'vulnerability': 'B'}
+
+SOURCE WITH TYPE QUALIFIERS:
+ 1: α a_0 = tainted b_0(tainted b_arg0 untainted 'nis')
+ 2: untainted c_0 = untainted ''
+ 3: β d_0 = untainted ''
+ 4: while (tainted e_0 == untainted ''):
+ 5:     untainted c_1 = β d_0
+ 6:     if(tainted x_0 == untainted 33):
+ 7:         γ d_1 = α a_0
+ 8:     ε a_1 = δ s_0(tainted s_arg0 α a_0 + untainted 1)
+ 9: η q_0 = ζ z_0(tainted z_arg0 untainted c_0)
+
+LABELS:
+{'a_0': 'α',
+ 'a_1': 'ε',
+ 'b_0': 'tainted',
+ 'b_arg0': 'tainted',
+ 'c_0': 'untainted',
+ 'c_1': 'untainted',
+ 'd_0': 'β',
+ 'd_1': 'γ',
+ 'e_0': 'tainted',
+ 'q_0': 'η',
+ 's_0': 'δ',
+ 's_arg0': 'tainted',
+ 'x_0': 'tainted',
+ 'z_0': 'ζ',
+ 'z_arg0': 'tainted'}
+
+SCOPED_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: untainted <= tainted,
+                                1: tainted <= α,
+                                2: untainted <= untainted,
+                                3: untainted <= β,
+                                9: untainted <= tainted,
+                                9: ζ <= η],
+             ((True, True), ("e == ''", True)): [ 5: β <= untainted,
+                                                  8: α <= tainted,
+                                                  8: untainted <= tainted,
+                                                  8: δ <= ε],
+             ((True, True), ("e == ''", True), ('x == 33', True)): [ 7: α <= γ]})
+
+PATH_FEASIBILITY_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: tainted <= α,
+                                1: untainted <= tainted,
+                                2: untainted <= untainted,
+                                3: untainted <= β,
+                                9: untainted <= tainted,
+                                9: ζ <= η],
+             ((True, True), ("e == ''", True)): [ 1: tainted <= α,
+                                                  1: untainted <= tainted,
+                                                  2: untainted <= untainted,
+                                                  3: untainted <= β,
+                                                  5: β <= untainted,
+                                                  8: untainted <= tainted,
+                                                  8: α <= tainted,
+                                                  8: δ <= ε,
+                                                  9: untainted <= tainted,
+                                                  9: ζ <= η],
+             ((True, True), ("e == ''", True), ('x == 33', True)): [ 1: tainted <= α,
+                                                                     1: untainted <= tainted,
+                                                                     2: untainted <= untainted,
+                                                                     3: untainted <= β,
+                                                                     5: β <= untainted,
+                                                                     7: α <= γ,
+                                                                     8: untainted <= tainted,
+                                                                     8: α <= tainted,
+                                                                     8: δ <= ε,
+                                                                     9: untainted <= tainted,
+                                                                     9: ζ <= η]})
+
+
+5c: loops-unfolding
+
+SOURCE:
+a = b('nis')
+while (true):
+    if(x == a):
+        c = s(a,1)
+        break
+    x = x + 1
+q = z(c)
+
+VARIABLE_SSA:
+{((True, True),): defaultdict(<class 'list'>,
+                              {'a': ['a_0'],
+                               'b': ['b_0'],
+                               'c': ['c_1'],
+                               'q': ['q_0'],
+                               'true': ['true_0'],
+                               'z': ['z_0']}),
+ ((True, True), ('true', True)): defaultdict(<class 'list'>,
+                                             {'a': ['a_0'],
+                                              'b': ['b_0'],
+                                              'true': ['true_0'],
+                                              'x': ['x_0', 'x_1']}),
+ ((True, True), ('true', True), ('x == a', True)): defaultdict(<class 'list'>,
+                                                               {'a': ['a_0'],
+                                                                'b': ['b_0'],
+                                                                'c': ['c_0'],
+                                                                's': ['s_0'],
+                                                                'true': ['true_0'],
+                                                                'x': ['x_0']})}
+
+SSA_VARIABLE:
+{'a_0': 'a',
+ 'b_0': 'b',
+ 'c_0': 'c',
+ 'c_1': 'c',
+ 'q_0': 'q',
+ 's_0': 's',
+ 'true_0': 'true',
+ 'x_0': 'x',
+ 'x_1': 'x',
+ 'z_0': 'z'}
+
+PATTERN:
+{'implicit': 'no',
+ 'sanitizers': ['s'],
+ 'sinks': ['z'],
+ 'sources': ['b', 'true', 'x'],
+ 'vulnerability': 'A'}
+
+SOURCE WITH TYPE QUALIFIERS:
+ 1: α a_0 = tainted b_0(tainted b_arg0 untainted 'nis')
+ 2: while (tainted true_0):
+ 3:     if(tainted x_0 == α a_0):
+ 4:         β c_0 = untainted s_0(tainted s_arg0 α a_0, tainted s_arg1 untainted 1)
+        break
+ 6:     tainted x_1 = tainted x_0 + untainted 1
+ 7: δ q_0 = untainted z_0(untainted z_arg0 γ c_1)
+
+LABELS:
+{'a_0': 'α',
+ 'b_0': 'tainted',
+ 'b_arg0': 'tainted',
+ 'c_0': 'β',
+ 'c_1': 'γ',
+ 'q_0': 'δ',
+ 's_0': 'untainted',
+ 's_arg0': 'tainted',
+ 's_arg1': 'tainted',
+ 'true_0': 'tainted',
+ 'x_0': 'tainted',
+ 'x_1': 'tainted',
+ 'z_0': 'untainted',
+ 'z_arg0': 'untainted'}
+
+SCOPED_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: untainted <= tainted,
+                                1: tainted <= α,
+                                7: γ <= untainted,
+                                7: untainted <= δ],
+             ((True, True), ('true', True)): [ 6: tainted <= tainted,
+                                               6: untainted <= tainted],
+             ((True, True), ('true', True), ('x == a', True)): [ 4: α <= tainted,
+                                                                 4: untainted <= tainted,
+                                                                 4: untainted <= β]})
+
+PATH_FEASIBILITY_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: tainted <= α,
+                                1: untainted <= tainted,
+                                7: untainted <= δ,
+                                7: γ <= untainted],
+             ((True, True), ('true', True)): [ 1: tainted <= α,
+                                               1: untainted <= tainted,
+                                               6: tainted <= tainted,
+                                               6: untainted <= tainted,
+                                               7: untainted <= δ,
+                                               7: γ <= untainted],
+             ((True, True), ('true', True), ('x == a', True)): [ 1: tainted <= α,
+                                                                 1: untainted <= tainted,
+                                                                 4: untainted <= tainted,
+                                                                 4: untainted <= β,
+                                                                 4: α <= tainted,
+                                                                 6: tainted <= tainted,
+                                                                 6: untainted <= tainted,
+                                                                 7: untainted <= δ,
+                                                                 7: γ <= untainted]})
+
+PATTERN:
+{'implicit': 'no',
+ 'sanitizers': ['z'],
+ 'sinks': ['q'],
+ 'sources': ['s', 'true', 'x'],
+ 'vulnerability': 'B'}
+
+SOURCE WITH TYPE QUALIFIERS:
+ 1: β a_0 = α b_0(tainted b_arg0 untainted 'nis')
+ 2: while (tainted true_0):
+ 3:     if(tainted x_0 == β a_0):
+ 4:         γ c_0 = tainted s_0(tainted s_arg0 β a_0, tainted s_arg1 untainted 1)
+        break
+ 6:     tainted x_1 = tainted x_0 + untainted 1
+ 7: untainted q_0 = untainted z_0(tainted z_arg0 δ c_1)
+
+LABELS:
+{'a_0': 'β',
+ 'b_0': 'α',
+ 'b_arg0': 'tainted',
+ 'c_0': 'γ',
+ 'c_1': 'δ',
+ 'q_0': 'untainted',
+ 's_0': 'tainted',
+ 's_arg0': 'tainted',
+ 's_arg1': 'tainted',
+ 'true_0': 'tainted',
+ 'x_0': 'tainted',
+ 'x_1': 'tainted',
+ 'z_0': 'untainted',
+ 'z_arg0': 'tainted'}
+
+SCOPED_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: untainted <= tainted,
+                                1: α <= β,
+                                7: δ <= tainted,
+                                7: untainted <= untainted],
+             ((True, True), ('true', True)): [ 6: tainted <= tainted,
+                                               6: untainted <= tainted],
+             ((True, True), ('true', True), ('x == a', True)): [ 4: β <= tainted,
+                                                                 4: untainted <= tainted,
+                                                                 4: tainted <= γ]})
+
+PATH_FEASIBILITY_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: untainted <= tainted,
+                                1: α <= β,
+                                7: untainted <= untainted,
+                                7: δ <= tainted],
+             ((True, True), ('true', True)): [ 1: untainted <= tainted,
+                                               1: α <= β,
+                                               6: tainted <= tainted,
+                                               6: untainted <= tainted,
+                                               7: untainted <= untainted,
+                                               7: δ <= tainted],
+             ((True, True), ('true', True), ('x == a', True)): [ 1: untainted <= tainted,
+                                                                 1: α <= β,
+                                                                 4: tainted <= γ,
+                                                                 4: untainted <= tainted,
+                                                                 4: β <= tainted,
+                                                                 6: tainted <= tainted,
+                                                                 6: untainted <= tainted,
+                                                                 7: untainted <= untainted,
+                                                                 7: δ <= tainted]})
+
+
+6a: sanitization
+
+SOURCE:
+a = b('ola')
+c(a)
+d = e(a) + a
+z(f,a)
+
+VARIABLE_SSA:
+{((True, True),): defaultdict(<class 'list'>,
+                              {'a': ['a_0'],
+                               'b': ['b_0'],
+                               'c': ['c_0'],
+                               'd': ['d_0'],
+                               'e': ['e_0'],
+                               'f': ['f_0'],
+                               'z': ['z_0']})}
+
+SSA_VARIABLE:
+{'a_0': 'a',
+ 'b_0': 'b',
+ 'c_0': 'c',
+ 'd_0': 'd',
+ 'e_0': 'e',
+ 'f_0': 'f',
+ 'z_0': 'z'}
+
+PATTERN:
+{'implicit': 'no',
+ 'sanitizers': ['c', 'e'],
+ 'sinks': ['z'],
+ 'sources': ['b', 'f'],
+ 'vulnerability': 'A'}
+
+SOURCE WITH TYPE QUALIFIERS:
+ 1: α a_0 = tainted b_0(tainted b_arg0 untainted 'ola')
+ 2: untainted c_0(tainted c_arg0 α a_0)
+ 3: β d_0 = untainted e_0(tainted e_arg0 α a_0) + α a_0
+ 4: untainted z_0(untainted z_arg0 tainted f_0, untainted z_arg1 α a_0)
+
+LABELS:
+{'a_0': 'α',
+ 'b_0': 'tainted',
+ 'b_arg0': 'tainted',
+ 'c_0': 'untainted',
+ 'c_arg0': 'tainted',
+ 'd_0': 'β',
+ 'e_0': 'untainted',
+ 'e_arg0': 'tainted',
+ 'f_0': 'tainted',
+ 'z_0': 'untainted',
+ 'z_arg0': 'untainted',
+ 'z_arg1': 'untainted'}
+
+SCOPED_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: untainted <= tainted,
+                                1: tainted <= α,
+                                2: α <= tainted,
+                                3: α <= tainted,
+                                3: untainted <= β,
+                                3: α <= β,
+                                4: tainted <= untainted,
+                                4: α <= untainted]})
+
+PATH_FEASIBILITY_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: tainted <= α,
+                                1: untainted <= tainted,
+                                2: α <= tainted,
+                                3: untainted <= β,
+                                3: α <= tainted,
+                                3: α <= β,
+                                4: tainted <= untainted,
+                                4: α <= untainted]})
+
+PATTERN:
+{'implicit': 'no',
+ 'sanitizers': ['c', 'e'],
+ 'sinks': ['d'],
+ 'sources': ['b', 'f'],
+ 'vulnerability': 'B'}
+
+SOURCE WITH TYPE QUALIFIERS:
+ 1: α a_0 = tainted b_0(tainted b_arg0 untainted 'ola')
+ 2: untainted c_0(tainted c_arg0 α a_0)
+ 3: untainted d_0 = untainted e_0(tainted e_arg0 α a_0) + α a_0
+ 4: β z_0(tainted z_arg0 tainted f_0, tainted z_arg1 α a_0)
+
+LABELS:
+{'a_0': 'α',
+ 'b_0': 'tainted',
+ 'b_arg0': 'tainted',
+ 'c_0': 'untainted',
+ 'c_arg0': 'tainted',
+ 'd_0': 'untainted',
+ 'e_0': 'untainted',
+ 'e_arg0': 'tainted',
+ 'f_0': 'tainted',
+ 'z_0': 'β',
+ 'z_arg0': 'tainted',
+ 'z_arg1': 'tainted'}
+
+SCOPED_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: untainted <= tainted,
+                                1: tainted <= α,
+                                2: α <= tainted,
+                                3: α <= tainted,
+                                3: untainted <= untainted,
+                                3: α <= untainted,
+                                4: tainted <= tainted,
+                                4: α <= tainted]})
+
+PATH_FEASIBILITY_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: tainted <= α,
+                                1: untainted <= tainted,
+                                2: α <= tainted,
+                                3: untainted <= untainted,
+                                3: α <= tainted,
+                                3: α <= untainted,
+                                4: tainted <= tainted,
+                                4: α <= tainted]})
+
+
+6b: sanitization
+
+SOURCE:
+a = b()
+b = c(33)
+d = e(a,b)
+
+VARIABLE_SSA:
+{((True, True),): defaultdict(<class 'list'>,
+                              {'a': ['a_0'],
+                               'b': ['b_0', 'b_1'],
+                               'c': ['c_0'],
+                               'd': ['d_0'],
+                               'e': ['e_0']})}
+
+SSA_VARIABLE:
+{'a_0': 'a', 'b_0': 'b', 'b_1': 'b', 'c_0': 'c', 'd_0': 'd', 'e_0': 'e'}
+
+PATTERN:
+{'implicit': 'no',
+ 'sanitizers': ['c', 'e'],
+ 'sinks': ['b'],
+ 'sources': ['a'],
+ 'vulnerability': 'A'}
+
+SOURCE WITH TYPE QUALIFIERS:
+ 1: tainted a_0 = untainted b_0()
+ 2: untainted b_1 = untainted c_0(tainted c_arg0 untainted 33)
+ 3: α d_0 = untainted e_0(tainted e_arg0 tainted a_0, tainted e_arg1 untainted b_1)
+
+LABELS:
+{'a_0': 'tainted',
+ 'b_0': 'untainted',
+ 'b_1': 'untainted',
+ 'c_0': 'untainted',
+ 'c_arg0': 'tainted',
+ 'd_0': 'α',
+ 'e_0': 'untainted',
+ 'e_arg0': 'tainted',
+ 'e_arg1': 'tainted'}
+
+SCOPED_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: untainted <= tainted,
+                                2: untainted <= tainted,
+                                2: untainted <= untainted,
+                                3: tainted <= tainted,
+                                3: untainted <= tainted,
+                                3: untainted <= α]})
+
+PATH_FEASIBILITY_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: untainted <= tainted,
+                                2: untainted <= tainted,
+                                2: untainted <= untainted,
+                                3: tainted <= tainted,
+                                3: untainted <= tainted,
+                                3: untainted <= α]})
+
+PATTERN:
+{'implicit': 'no',
+ 'sanitizers': ['b'],
+ 'sinks': ['c'],
+ 'sources': ['a'],
+ 'vulnerability': 'B'}
+
+SOURCE WITH TYPE QUALIFIERS:
+ 1: tainted a_0 = untainted b_0()
+ 2: untainted b_1 = untainted c_0(untainted c_arg0 untainted 33)
+ 3: β d_0 = α e_0(tainted e_arg0 tainted a_0, tainted e_arg1 untainted b_1)
+
+LABELS:
+{'a_0': 'tainted',
+ 'b_0': 'untainted',
+ 'b_1': 'untainted',
+ 'c_0': 'untainted',
+ 'c_arg0': 'untainted',
+ 'd_0': 'β',
+ 'e_0': 'α',
+ 'e_arg0': 'tainted',
+ 'e_arg1': 'tainted'}
+
+SCOPED_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: untainted <= tainted,
+                                2: untainted <= untainted,
+                                2: untainted <= untainted,
+                                3: tainted <= tainted,
+                                3: untainted <= tainted,
+                                3: α <= β]})
+
+PATH_FEASIBILITY_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: untainted <= tainted,
+                                2: untainted <= untainted,
+                                2: untainted <= untainted,
+                                3: tainted <= tainted,
+                                3: untainted <= tainted,
+                                3: α <= β]})
+
+
+7: conds-implicit
+
+SOURCE:
+a = b(boo)
+k = 0
+if(c == a):
+    d = 'xpto1'
+else:
+    d = 'xpto2'
+e(d,'koneksi')
+
+VARIABLE_SSA:
+{((True, True),): defaultdict(<class 'list'>,
+                              {'a': ['a_0'],
+                               'b': ['b_0'],
+                               'boo': ['boo_0'],
+                               'c': ['c_0'],
+                               'd': ['d_2'],
+                               'e': ['e_0'],
+                               'k': ['k_0']}),
+ ((True, True), ('c == a', False)): defaultdict(<class 'list'>,
+                                                {'a': ['a_0'],
+                                                 'b': ['b_0'],
+                                                 'boo': ['boo_0'],
+                                                 'c': ['c_0'],
+                                                 'd': ['d_1'],
+                                                 'k': ['k_0']}),
+ ((True, True), ('c == a', True)): defaultdict(<class 'list'>,
+                                               {'a': ['a_0'],
+                                                'b': ['b_0'],
+                                                'boo': ['boo_0'],
+                                                'c': ['c_0'],
+                                                'd': ['d_0'],
+                                                'k': ['k_0']})}
+
+SSA_VARIABLE:
+{'a_0': 'a',
+ 'b_0': 'b',
+ 'boo_0': 'boo',
+ 'c_0': 'c',
+ 'd_0': 'd',
+ 'd_1': 'd',
+ 'd_2': 'd',
+ 'e_0': 'e',
+ 'k_0': 'k'}
+
+PATTERN:
+{'implicit': 'yes',
+ 'sanitizers': [],
+ 'sinks': ['e'],
+ 'sources': ['b', 'boo', 'c'],
+ 'vulnerability': 'A'}
+
+SOURCE WITH TYPE QUALIFIERS:
+ 1: α a_0 = tainted b_0(tainted b_arg0 tainted boo_0)
+ 2: β k_0 = untainted 0
+ 3: if(tainted c_0 == α a_0):
+ 4:     γ d_0 = untainted 'xpto1'
+ 4: else:
+ 6:     δ d_1 = untainted 'xpto2'
+ 7: untainted e_0(untainted e_arg0 ε d_2, untainted e_arg1 untainted 'koneksi')
+
+LABELS:
+{'a_0': 'α',
+ 'b_0': 'tainted',
+ 'b_arg0': 'tainted',
+ 'boo_0': 'tainted',
+ 'c_0': 'tainted',
+ 'd_0': 'γ',
+ 'd_1': 'δ',
+ 'd_2': 'ε',
+ 'e_0': 'untainted',
+ 'e_arg0': 'untainted',
+ 'e_arg1': 'untainted',
+ 'k_0': 'β'}
+
+SCOPED_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: tainted <= tainted,
+                                1: tainted <= α,
+                                2: untainted <= β,
+                                7: ε <= untainted,
+                                7: untainted <= untainted],
+             ((True, True), ('c == a', False)): [ 6: untainted <= δ],
+             ((True, True), ('c == a', True)): [ 4: untainted <= γ]})
+
+PATH_FEASIBILITY_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: tainted <= α,
+                                1: tainted <= tainted,
+                                2: untainted <= β,
+                                7: untainted <= untainted,
+                                7: ε <= untainted],
+             ((True, True), ('c == a', False)): [ 1: tainted <= α,
+                                                  1: tainted <= tainted,
+                                                  2: untainted <= β,
+                                                  6: untainted <= δ,
+                                                  7: untainted <= untainted,
+                                                  7: ε <= untainted],
+             ((True, True), ('c == a', True)): [ 1: tainted <= α,
+                                                 1: tainted <= tainted,
+                                                 2: untainted <= β,
+                                                 4: untainted <= γ,
+                                                 7: untainted <= untainted,
+                                                 7: ε <= untainted]})
+
+
+8: loops-implici
+
+SOURCE:
+a = b('nis')
+c = ''
+while (i == a):
+    c = c + 'xpto1'
+    i = t(i)
+w(s('oi',c))
+
+VARIABLE_SSA:
+{((True, True),): defaultdict(<class 'list'>,
+                              {'a': ['a_0'],
+                               'b': ['b_0'],
+                               'c': ['c_0'],
+                               'i': ['i_0'],
+                               's': ['s_0'],
+                               'w': ['w_0']}),
+ ((True, True), ('i == a', True)): defaultdict(<class 'list'>,
+                                               {'a': ['a_0'],
+                                                'b': ['b_0'],
+                                                'c': ['c_0', 'c_1'],
+                                                'i': ['i_0', 'i_1'],
+                                                't': ['t_0']})}
+
+SSA_VARIABLE:
+{'a_0': 'a',
+ 'b_0': 'b',
+ 'c_0': 'c',
+ 'c_1': 'c',
+ 'i_0': 'i',
+ 'i_1': 'i',
+ 's_0': 's',
+ 't_0': 't',
+ 'w_0': 'w'}
+
+PATTERN:
+{'implicit': 'yes',
+ 'sanitizers': ['s'],
+ 'sinks': ['w', 't'],
+ 'sources': ['b', 'i'],
+ 'vulnerability': 'A'}
+
+SOURCE WITH TYPE QUALIFIERS:
+ 1: α a_0 = tainted b_0(tainted b_arg0 untainted 'nis')
+ 2: β c_0 = untainted ''
+ 3: while (tainted i_0 == α a_0):
+ 4:     γ c_1 = β c_0 + untainted 'xpto1'
+ 5:     tainted i_1 = untainted t_0(untainted t_arg0 tainted i_0)
+ 6: untainted w_0(untainted w_arg0 untainted s_0(tainted s_arg0 untainted 'oi', tainted s_arg1 β c_0))
+
+LABELS:
+{'a_0': 'α',
+ 'b_0': 'tainted',
+ 'b_arg0': 'tainted',
+ 'c_0': 'β',
+ 'c_1': 'γ',
+ 'i_0': 'tainted',
+ 'i_1': 'tainted',
+ 's_0': 'untainted',
+ 's_arg0': 'tainted',
+ 's_arg1': 'tainted',
+ 't_0': 'untainted',
+ 't_arg0': 'untainted',
+ 'w_0': 'untainted',
+ 'w_arg0': 'untainted'}
+
+SCOPED_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: untainted <= tainted,
+                                1: tainted <= α,
+                                2: untainted <= β,
+                                6: untainted <= tainted,
+                                6: β <= tainted,
+                                6: untainted <= untainted],
+             ((True, True), ('i == a', True)): [ 4: β <= γ,
+                                                 4: untainted <= γ,
+                                                 5: tainted <= untainted,
+                                                 5: untainted <= tainted]})
+
+PATH_FEASIBILITY_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: tainted <= α,
+                                1: untainted <= tainted,
+                                2: untainted <= β,
+                                6: untainted <= tainted,
+                                6: untainted <= untainted,
+                                6: β <= tainted],
+             ((True, True), ('i == a', True)): [ 1: tainted <= α,
+                                                 1: untainted <= tainted,
+                                                 2: untainted <= β,
+                                                 4: untainted <= γ,
+                                                 4: β <= γ,
+                                                 5: tainted <= untainted,
+                                                 5: untainted <= tainted,
+                                                 6: untainted <= tainted,
+                                                 6: untainted <= untainted,
+                                                 6: β <= tainted]})
+
+
+9: regions-guards
+
+SOURCE:
+a = b('nis')
+c = d('oi')
+i = ''
+while (a != ''):
+    f = s(c,0,1)
+    if(f == 'a'):
+        i = i + "'"
+    else:
+        i = i + ' '
+    a = s(a,1)
+z(0,i)
+
+VARIABLE_SSA:
+{((True, True),): defaultdict(<class 'list'>,
+                              {'a': ['a_0'],
+                               'b': ['b_0'],
+                               'c': ['c_0'],
+                               'd': ['d_0'],
+                               'i': ['i_0'],
+                               'z': ['z_0']}),
+ ((True, True), ("a != ''", True)): defaultdict(<class 'list'>,
+                                                {'a': ['a_0', 'a_1'],
+                                                 'b': ['b_0'],
+                                                 'c': ['c_0'],
+                                                 'd': ['d_0'],
+                                                 'f': ['f_0'],
+                                                 'i': ['i_0'],
+                                                 's': ['s_0']}),
+ ((True, True), ("a != ''", True), ("f == 'a'", False)): defaultdict(<class 'list'>,
+                                                                     {'a': ['a_0'],
+                                                                      'b': ['b_0'],
+                                                                      'c': ['c_0'],
+                                                                      'd': ['d_0'],
+                                                                      'f': ['f_0'],
+                                                                      'i': ['i_0',
+                                                                            'i_2'],
+                                                                      's': ['s_0']}),
+ ((True, True), ("a != ''", True), ("f == 'a'", True)): defaultdict(<class 'list'>,
+                                                                    {'a': ['a_0'],
+                                                                     'b': ['b_0'],
+                                                                     'c': ['c_0'],
+                                                                     'd': ['d_0'],
+                                                                     'f': ['f_0'],
+                                                                     'i': ['i_0',
+                                                                           'i_1'],
+                                                                     's': ['s_0']})}
+
+SSA_VARIABLE:
+{'a_0': 'a',
+ 'a_1': 'a',
+ 'b_0': 'b',
+ 'c_0': 'c',
+ 'd_0': 'd',
+ 'f_0': 'f',
+ 'i_0': 'i',
+ 'i_1': 'i',
+ 'i_2': 'i',
+ 's_0': 's',
+ 'z_0': 'z'}
+
+PATTERN:
+{'implicit': 'yes',
+ 'sanitizers': ['s'],
+ 'sinks': ['z'],
+ 'sources': ['d'],
+ 'vulnerability': 'A'}
+
+SOURCE WITH TYPE QUALIFIERS:
+ 1: β a_0 = α b_0(tainted b_arg0 untainted 'nis')
+ 2: γ c_0 = tainted d_0(tainted d_arg0 untainted 'oi')
+ 3: δ i_0 = untainted ''
+ 4: while (β a_0 != untainted ''):
+ 5:     ε f_0 = untainted s_0(tainted s_arg0 γ c_0, tainted s_arg1 untainted 0, tainted s_arg2 untainted 1)
+ 7:     if(ε f_0 == untainted 'a'):
+ 8:         ζ i_1 = δ i_0 + untainted "'"
+ 8:     else:
+10:         η i_2 = δ i_0 + untainted ' '
+11:     θ a_1 = untainted s_0(tainted s_arg0 β a_0, tainted s_arg1 untainted 1)
+12: untainted z_0(untainted z_arg0 untainted 0, untainted z_arg1 δ i_0)
+
+LABELS:
+{'a_0': 'β',
+ 'a_1': 'θ',
+ 'b_0': 'α',
+ 'b_arg0': 'tainted',
+ 'c_0': 'γ',
+ 'd_0': 'tainted',
+ 'd_arg0': 'tainted',
+ 'f_0': 'ε',
+ 'i_0': 'δ',
+ 'i_1': 'ζ',
+ 'i_2': 'η',
+ 's_0': 'untainted',
+ 's_arg0': 'tainted',
+ 's_arg1': 'tainted',
+ 's_arg2': 'tainted',
+ 'z_0': 'untainted',
+ 'z_arg0': 'untainted',
+ 'z_arg1': 'untainted'}
+
+SCOPED_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: untainted <= tainted,
+                                1: α <= β,
+                                2: untainted <= tainted,
+                                2: tainted <= γ,
+                                3: untainted <= δ,
+                               12: untainted <= untainted,
+                               12: δ <= untainted],
+             ((True, True), ("a != ''", True)): [ 5: γ <= tainted,
+                                                  5: untainted <= tainted,
+                                                  5: untainted <= tainted,
+                                                  5: untainted <= ε,
+                                                 11: β <= tainted,
+                                                 11: untainted <= tainted,
+                                                 11: untainted <= θ],
+             ((True, True), ("a != ''", True), ("f == 'a'", False)): [10: δ <= η,
+                                                                      10: untainted <= η],
+             ((True, True), ("a != ''", True), ("f == 'a'", True)): [ 8: δ <= ζ,
+                                                                      8: untainted <= ζ]})
+
+PATH_FEASIBILITY_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: untainted <= tainted,
+                                1: α <= β,
+                                2: tainted <= γ,
+                                2: untainted <= tainted,
+                                3: untainted <= δ,
+                               12: untainted <= untainted,
+                               12: δ <= untainted],
+             ((True, True), ("a != ''", True)): [ 1: untainted <= tainted,
+                                                  1: α <= β,
+                                                  2: tainted <= γ,
+                                                  2: untainted <= tainted,
+                                                  3: untainted <= δ,
+                                                  5: untainted <= tainted,
+                                                  5: untainted <= tainted,
+                                                  5: untainted <= ε,
+                                                  5: γ <= tainted,
+                                                 11: untainted <= tainted,
+                                                 11: untainted <= θ,
+                                                 11: β <= tainted,
+                                                 12: untainted <= untainted,
+                                                 12: δ <= untainted],
+             ((True, True), ("a != ''", True), ("f == 'a'", False)): [ 1: untainted <= tainted,
+                                                                       1: α <= β,
+                                                                       2: tainted <= γ,
+                                                                       2: untainted <= tainted,
+                                                                       3: untainted <= δ,
+                                                                       5: untainted <= tainted,
+                                                                       5: untainted <= tainted,
+                                                                       5: untainted <= ε,
+                                                                       5: γ <= tainted,
+                                                                      10: untainted <= η,
+                                                                      10: δ <= η,
+                                                                      11: untainted <= tainted,
+                                                                      11: untainted <= θ,
+                                                                      11: β <= tainted,
+                                                                      12: untainted <= untainted,
+                                                                      12: δ <= untainted],
+             ((True, True), ("a != ''", True), ("f == 'a'", True)): [ 1: untainted <= tainted,
+                                                                      1: α <= β,
+                                                                      2: tainted <= γ,
+                                                                      2: untainted <= tainted,
+                                                                      3: untainted <= δ,
+                                                                      5: untainted <= tainted,
+                                                                      5: untainted <= tainted,
+                                                                      5: untainted <= ε,
+                                                                      5: γ <= tainted,
+                                                                      8: untainted <= ζ,
+                                                                      8: δ <= ζ,
+                                                                     11: untainted <= tainted,
+                                                                     11: untainted <= θ,
+                                                                     11: β <= tainted,
+                                                                     12: untainted <= untainted,
+                                                                     12: δ <= untainted]})
+
+PATTERN:
+{'implicit': 'yes',
+ 'sanitizers': ['s'],
+ 'sinks': ['a', 'z'],
+ 'sources': ['b'],
+ 'vulnerability': 'B'}
+
+SOURCE WITH TYPE QUALIFIERS:
+ 1: untainted a_0 = tainted b_0(tainted b_arg0 untainted 'nis')
+ 2: β c_0 = α d_0(tainted d_arg0 untainted 'oi')
+ 3: γ i_0 = untainted ''
+ 4: while (untainted a_0 != untainted ''):
+ 5:     δ f_0 = untainted s_0(tainted s_arg0 β c_0, tainted s_arg1 untainted 0, tainted s_arg2 untainted 1)
+ 7:     if(δ f_0 == untainted 'a'):
+ 8:         ε i_1 = γ i_0 + untainted "'"
+ 8:     else:
+10:         ζ i_2 = γ i_0 + untainted ' '
+11:     untainted a_1 = untainted s_0(tainted s_arg0 untainted a_0, tainted s_arg1 untainted 1)
+12: untainted z_0(untainted z_arg0 untainted 0, untainted z_arg1 γ i_0)
+
+LABELS:
+{'a_0': 'untainted',
+ 'a_1': 'untainted',
+ 'b_0': 'tainted',
+ 'b_arg0': 'tainted',
+ 'c_0': 'β',
+ 'd_0': 'α',
+ 'd_arg0': 'tainted',
+ 'f_0': 'δ',
+ 'i_0': 'γ',
+ 'i_1': 'ε',
+ 'i_2': 'ζ',
+ 's_0': 'untainted',
+ 's_arg0': 'tainted',
+ 's_arg1': 'tainted',
+ 's_arg2': 'tainted',
+ 'z_0': 'untainted',
+ 'z_arg0': 'untainted',
+ 'z_arg1': 'untainted'}
+
+SCOPED_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: untainted <= tainted,
+                                1: tainted <= untainted,
+                                2: untainted <= tainted,
+                                2: α <= β,
+                                3: untainted <= γ,
+                               12: untainted <= untainted,
+                               12: γ <= untainted],
+             ((True, True), ("a != ''", True)): [ 5: β <= tainted,
+                                                  5: untainted <= tainted,
+                                                  5: untainted <= tainted,
+                                                  5: untainted <= δ,
+                                                 11: untainted <= tainted,
+                                                 11: untainted <= tainted,
+                                                 11: untainted <= untainted],
+             ((True, True), ("a != ''", True), ("f == 'a'", False)): [10: γ <= ζ,
+                                                                      10: untainted <= ζ],
+             ((True, True), ("a != ''", True), ("f == 'a'", True)): [ 8: γ <= ε,
+                                                                      8: untainted <= ε]})
+
+PATH_FEASIBILITY_CONSTRAINTS:
+defaultdict(<class 'list'>,
+            {((True, True),): [ 1: tainted <= untainted,
+                                1: untainted <= tainted,
+                                2: untainted <= tainted,
+                                2: α <= β,
+                                3: untainted <= γ,
+                               12: untainted <= untainted,
+                               12: γ <= untainted],
+             ((True, True), ("a != ''", True)): [ 1: tainted <= untainted,
+                                                  1: untainted <= tainted,
+                                                  2: untainted <= tainted,
+                                                  2: α <= β,
+                                                  3: untainted <= γ,
+                                                  5: untainted <= tainted,
+                                                  5: untainted <= tainted,
+                                                  5: untainted <= δ,
+                                                  5: β <= tainted,
+                                                 11: untainted <= tainted,
+                                                 11: untainted <= tainted,
+                                                 11: untainted <= untainted,
+                                                 12: untainted <= untainted,
+                                                 12: γ <= untainted],
+             ((True, True), ("a != ''", True), ("f == 'a'", False)): [ 1: tainted <= untainted,
+                                                                       1: untainted <= tainted,
+                                                                       2: untainted <= tainted,
+                                                                       2: α <= β,
+                                                                       3: untainted <= γ,
+                                                                       5: untainted <= tainted,
+                                                                       5: untainted <= tainted,
+                                                                       5: untainted <= δ,
+                                                                       5: β <= tainted,
+                                                                      10: untainted <= ζ,
+                                                                      10: γ <= ζ,
+                                                                      11: untainted <= tainted,
+                                                                      11: untainted <= tainted,
+                                                                      11: untainted <= untainted,
+                                                                      12: untainted <= untainted,
+                                                                      12: γ <= untainted],
+             ((True, True), ("a != ''", True), ("f == 'a'", True)): [ 1: tainted <= untainted,
+                                                                      1: untainted <= tainted,
+                                                                      2: untainted <= tainted,
+                                                                      2: α <= β,
+                                                                      3: untainted <= γ,
+                                                                      5: untainted <= tainted,
+                                                                      5: untainted <= tainted,
+                                                                      5: untainted <= δ,
+                                                                      5: β <= tainted,
+                                                                      8: untainted <= ε,
+                                                                      8: γ <= ε,
+                                                                     11: untainted <= tainted,
+                                                                     11: untainted <= tainted,
+                                                                     11: untainted <= untainted,
+                                                                     12: untainted <= untainted,
+                                                                     12: γ <= untainted]})
+
