@@ -9,6 +9,7 @@ import shutil
 import tf_analyser
 from utilities import load_json
 from utilities import dump_jsons
+from pprint import pprint
 
 
 class Test:
@@ -64,13 +65,40 @@ def pprint_outputs():
     pprint_objects(Path("outputs"), slices.glob("*output.json"))
 
 
+def remove_names(array):
+    for dict in array:
+        del dict['vulnerability']
+    return array
+
+
+def remove_sanitized_flows(array):
+    for dict in array:
+        del dict['sanitized flows']
+        del dict['unsanitized flows']
+    return array
+
+
 def run(test):
     print()
     print(test)
     analysis = tf_analyser.main(test.ast, test.patterns, debug=True)
     print()
-    # output = load_json(t.output)
-    # assert analysis==output, f"{analysis} != {output}"
+    output = load_json(test.output)
+
+    analysis = remove_names(analysis)
+    output = remove_names(output)
+
+    analysis = remove_sanitized_flows(analysis)
+    output = remove_sanitized_flows(output)
+    print("Compare: \n")
+    analysis = sorted(analysis, key=lambda d: (d['source'], d['sink']))
+    output = sorted(output, key=lambda d: (d['source'], d['sink']))
+    print("Actual: \n")
+    pprint(analysis)
+    print("-----------")
+    print("Expected: \n")
+    pprint(output)
+    print(analysis == output)
 
 
 def run_tests(glob_expr=""):
@@ -78,19 +106,27 @@ def run_tests(glob_expr=""):
     for t in tests:
         run(t)
 
+
 def main():
-    if not slices.exists(): extract()
+    if not slices.exists():
+        extract()
     run_tests()
 
 
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--extract", action='store_true', help=f"flag to extract slices from zip archive ({slices_url})") #action=argparse.BooleanOptionalAction 3.10
-    parser.add_argument("--pprint_asts", action='store_true', help="pretty print abstract syntax trees")
-    parser.add_argument("--pprint_outputs", action='store_true', help="pretty print output objects")
-    parser.add_argument("--pprint_patterns", action='store_true', help="pretty print patterns objects")
-    parser.add_argument("--tests", nargs='+', help="expression to id tests (example 1a 2)")
+    # action=argparse.BooleanOptionalAction 3.10
+    parser.add_argument("--extract", action='store_true',
+                        help=f"flag to extract slices from zip archive ({slices_url})")
+    parser.add_argument("--pprint_asts", action='store_true',
+                        help="pretty print abstract syntax trees")
+    parser.add_argument("--pprint_outputs", action='store_true',
+                        help="pretty print output objects")
+    parser.add_argument("--pprint_patterns", action='store_true',
+                        help="pretty print patterns objects")
+    parser.add_argument("--tests", nargs='+',
+                        help="expression to id tests (example 1a 2)")
 
     args = parser.parse_args()
     if args.extract:
