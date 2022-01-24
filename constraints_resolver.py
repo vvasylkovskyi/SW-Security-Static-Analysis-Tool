@@ -94,7 +94,7 @@ class ConstraintsResolver:
                 return True
         return False
 
-    def has_vulnerability(self, constraints):
+    def has_vulnerability(self, constraints, sources_vars, sinks_vars, tf_labels):
 
         # Run and check if contains vulnerability without resolving constraints
         if self.is_constraints_contain_illegal_flow(constraints):
@@ -147,6 +147,12 @@ class ConstraintsResolver:
             if self.is_illegal_flow(resolution):
                 print("Is illegal flow!")
                 return True
+
+        print("RESOLUTION SO FAR: ", resolution)
+        print("SOURCES VAR: ", sources_vars)
+        print("SINKS VARS: ", sinks_vars)
+        print("TF_LABELS: ", tf_labels)
+
         return False
 
     # def filter_vulnerabilities_by_sinks(self, vulnerabilities, sinks):
@@ -154,14 +160,14 @@ class ConstraintsResolver:
     #     print("Sinks: ", sinks)
     #     return filter(lambda vulnerability: vulnerability.sink in sinks, vulnerabilities)
 
-    def resolve_constraints_and_find_vulnerabilties(self, constraints, pattern):
+    def resolve_constraints_and_find_vulnerabilties(self, constraints, pattern, sources_vars, sinks_vars, tf_labels):
         sources = pattern['sources']
         sinks = pattern['sinks']
         name = pattern['vulnerability']
         vulnerabilities = list()
         for source in sources:
             for sink in sinks:
-                if self.has_vulnerability(constraints):
+                if self.has_vulnerability(constraints, sources_vars, sinks_vars, tf_labels):
                     vulnerabilities_index = len(vulnerabilities) + 1
                     vulnerability_name = name + "_" + vulnerabilities_index.__str__()
                     vulnerability = Vulnerabilty(

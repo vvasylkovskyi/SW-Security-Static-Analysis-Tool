@@ -40,8 +40,8 @@ class InstantiationVisitor(Visitor):
             node[FlowCategory.__name__] = FlowCategory.SOURCE
         elif name in self.sinks:
             node[FlowCategory.__name__] = FlowCategory.SINK
-        elif name in self.sanitizers:
-            node[FlowCategory.__name__] = FlowCategory.SANITIZER
+        # elif name in self.sanitizers:
+        #     node[FlowCategory.__name__] = FlowCategory.SANITIZER
         else:
             node[FlowCategory.__name__] = FlowCategory.REGULAR
         return node[FlowCategory.__name__]

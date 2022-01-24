@@ -30,7 +30,7 @@ from tf_visitor import TaintedFlowVisitor
 from tf_ssa_src_visitor import TaintedFlowSSASrcVisitor
 from constraints_pf_sensitivity_visitor import ConstraintsPathFlowSenstivityVisitor
 from constraints_resolver import ConstraintsResolver
-
+from unmarked_visitor import UnmarkedVisitor
 from utilities import load_json
 
 
@@ -65,14 +65,16 @@ def print_vulnerabilities_to_json(vulnerabilities, file_path):
         formatted_file.write(vulnerabilties_str + '\n')
 
 
-def get_vulnerabilities(ast, pattern, variable_ssa_map, ssa_variable_map, tf_labels, scoped_constraints, path_feasibility_constraints):
+def get_vulnerabilities(ast, pattern, variable_ssa_map, ssa_variable_map, tf_labels, scoped_constraints, path_feasibility_constraints, sources, sinks):
     # TODO
+    print("HERE", TaintedFlowSSASrcVisitor(ast).visit_ast())
+
     constraints_resolver = ConstraintsResolver()
     vulnerabilities = list()
     for scope, constraints in path_feasibility_constraints.items():
         print("Constraints: ", constraints)
         vulnerability = constraints_resolver.resolve_constraints_and_find_vulnerabilties(
-            sorted(set(constraints)), pattern)
+            sorted(set(constraints)), pattern, sources, sinks, tf_labels)
 
         if vulnerability:
             vulnerabilities = [*vulnerabilities, *vulnerability]
@@ -83,6 +85,14 @@ def get_vulnerabilities(ast, pattern, variable_ssa_map, ssa_variable_map, tf_lab
             vulnerability[0], vulnerability[1], vulnerability[2]))
 
     return formatted_vulnerabilities
+
+
+def resolve_sources(sources, labels):
+    resolved_sources = list()
+    for source in sources:
+        if labels[source] != None:
+            resolved_sources.append(labels[source])
+    return resolved_sources
 
 
 def get_analysis_data(ast, pattern, debug=False):
@@ -96,16 +106,25 @@ def get_analysis_data(ast, pattern, debug=False):
 
     tfv.visit_ast()  # assign taint qualifiers
 
+    # unmarked_v = UnmarkedVisitor(ast)
+    # unmarked_v.visit_ast()
     # if debug: report("AST:", ast) # check progress of taint qualifiers atribution
 
+    # print("UNMARKED LABELS: ", unmarked_v.labels)
     tf_labels = tfv.labels
 
     cv = ConstraintsPathFlowSenstivityVisitor(ast)
+
+    cv.sources = tfv.sources
+    cv.sinks = tfv.sinks
+    cv.sanitizers = tfv.sanitizers
+
     cv.visit_ast()  # create constraints
 
     scoped_constraints = cv.scoped_constraints
     path_feasibility_constraints = cv.path_feasibility_constraints
-
+    sources = tfv.sources
+    sinks = tfv.sinks
     if debug:
         report("PATTERN:", pattern)
         report("SOURCE WITH TYPE QUALIFIERS:",
@@ -116,7 +135,7 @@ def get_analysis_data(ast, pattern, debug=False):
 
     # # print(f"please solve constraints to detect illegal flows")
 
-    return tf_labels, scoped_constraints, path_feasibility_constraints
+    return tf_labels, scoped_constraints, path_feasibility_constraints, sources, sinks
 
 
 def main_experimental(ast, patterns, debug=False):
@@ -156,11 +175,11 @@ def main_experimental(ast, patterns, debug=False):
 
         # if debug: report("PATTERN:", pattern) # to compare to after their mutation
 
-        tf_labels, scoped_constraints, path_feasibility_constraints = get_analysis_data(
+        tf_labels, scoped_constraints, path_feasibility_constraints, sources, sinks = get_analysis_data(
             ast.copy(), pattern, debug=debug)
 
         vulnerabilities.extend(get_vulnerabilities(ast, pattern, variable_ssa_map,
-                               ssa_variable_map, tf_labels, scoped_constraints, path_feasibility_constraints))
+                               ssa_variable_map, tf_labels, scoped_constraints, path_feasibility_constraints, sources, sinks))
 
     #if debug: report("VULNERABILITIES:", vulnerabilities)
 

@@ -13,16 +13,13 @@ class CallArgKeys(InstantiationCallArgKeys):
     Call_arg_TaintQualifer = "Call_arg_TaintQualifier"
 
 
-class TaintedFlowVisitor(Visitor):
+class UnmarkedVisitor(Visitor):
 
     def __init__(self, ast):
-        super(TaintedFlowVisitor, self).__init__(ast)
-        self.super = super(TaintedFlowVisitor, self)
+        super(UnmarkedVisitor, self).__init__(ast)
+        self.super = super(UnmarkedVisitor, self)
         self._labels = filter(None, TaintQualifer.labels)
         self._labels_map = dict()
-        self.sources = list()
-        self.sinks = list()
-        self.sanitizers = list()
 
     @property
     def labels(self):
@@ -44,32 +41,18 @@ class TaintedFlowVisitor(Visitor):
             self._labels_map[node[CallArgKeys.Call_arg]
                              ] = node[CallArgKeys.Call_arg_TaintQualifer]
 
-    def assign_taint_qualifier(self, node, name):
+    def assign_unmarked_qualifier(self, node, name):
         if not name in self._labels_map:
-            node_flow_category = node[FlowCategory.__name__]
 
-            if node_flow_category == FlowCategory.SOURCE:
-                self.sources.append(name)
-            #     taint_qualifier = TaintQualifer.TAINTED
+            qualifier = self.next_label()
 
-            elif node_flow_category == FlowCategory.SANITIZER:
-                self.sanitizers.append(name)
-            #     taint_qualifier = TaintQualifer.UNTAINTED
-
-            elif node_flow_category == FlowCategory.SINK:
-                self.sinks.append(name)
-            #     taint_qualifier = TaintQualifer.UNTAINTED
-
-            # elif node_flow_category == FlowCategory.REGULAR:
-            taint_qualifier = self.next_label()
-
-            self._labels_map[name] = taint_qualifier
+            self._labels_map[name] = qualifier
 
         node[TaintQualifer.__name__] = self._labels_map[name]
 
     def visit_Name(self, node):
         name = self.super.visit_Name(node)
-        self.assign_taint_qualifier(node, name)
+        self.assign_unmarked_qualifier(node, name)
 
     def visit_Call_args(self, nodes):
         for node in nodes:
