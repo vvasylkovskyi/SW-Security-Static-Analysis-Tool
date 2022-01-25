@@ -115,6 +115,7 @@ def get_analysis_data(ast, pattern, debug=False):
 
     cv = ConstraintsPathFlowSenstivityVisitor(ast)
 
+    cv.labels = tf_labels
     cv.sources = tfv.sources
     cv.sinks = tfv.sinks
     cv.sanitizers = tfv.sanitizers

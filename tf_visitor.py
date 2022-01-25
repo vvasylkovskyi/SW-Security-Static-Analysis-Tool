@@ -40,9 +40,10 @@ class TaintedFlowVisitor(Visitor):
                 FlowCategory.REGULAR: TaintQualifer.TAINTED,
                 FlowCategory.SINK: TaintQualifer.UNTAINTED
             }[arg_flow_category]
+            taint_qualifier = self.next_label()
 
             self._labels_map[node[CallArgKeys.Call_arg]
-                             ] = node[CallArgKeys.Call_arg_TaintQualifer]
+                             ] = taint_qualifier
 
     def assign_taint_qualifier(self, node, name):
         if not name in self._labels_map:

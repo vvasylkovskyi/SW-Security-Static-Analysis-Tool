@@ -27,6 +27,7 @@ class ConstraintsPathFlowSenstivityVisitor(Visitor):
         self.sources = list()
         self.sinks = list()
         self.sanitizers = list()
+        self.labels = list()
 
     @property
     def scoped_constraints(self):
@@ -101,25 +102,49 @@ class ConstraintsPathFlowSenstivityVisitor(Visitor):
         else:
             return self.super.visit_Call_arg(node)
 
+    def get_qualifier(self, arg):
+        print("LABELS: ", self.labels)
+        return self.labels[arg]
+
     def visit_Call_arg_as_parameter(self, node):
         return (node[CallArgKeys.Call_arg_TaintQualifer], node[CallArgKeys.Call_arg])
 
-    def visit_Call_args(self, nodes, lineno):
+    def visit_Call_args(self, nodes, lineno, return_qualifier, return_name):
+        print("HERE NOW")
         for node in nodes:
             arg_taint_qualifier, arg = self.visit_Call_arg_as_parameter(node)
             values = self.visit_Call_arg(node)  # >1 if BinOp
+            arg_qualifier = self.get_qualifier(arg)
             for taint_qualifier, name in values:
-                constraint = Constraint(
-                    lineno, taint_qualifier, name, arg_taint_qualifier, arg)
-                self._scoped_constraints[self._scope].append(constraint)
+                print("Return QF: ", return_qualifier)
+                print("Return Name: ", return_name)
+                print("Visit Call Args: ", values)
+                print("YOO")
+                # constraint_return = Constraint(
+                #     lineno, return_qualifier, return_name, taint_qualifier, name)
+                # self._scoped_constraints[self._scope].append(constraint_return)
+
+                constraint_arg = Constraint(
+                    lineno, taint_qualifier, name, arg_qualifier, arg)
+                print("CONSTRAINT: ", constraint_arg)
+                print("CONSTRAINT arg taint qualifier: ", arg_taint_qualifier)
+                print("CONSTRAINT arg : ", arg)
+                print("CONSTRAINT name : ", name)
+                print("CONSTRAINT taint_q : ", taint_qualifier)
+                print("CONSTRAINT ARG QF: ", arg_qualifier)
+
+                self._scoped_constraints[self._scope].append(constraint_arg)
 
     def visit_Call_func(self, node):
         ((taint_qualifier, name),) = self.visit_Name(node)
+        print("CALL FN")
         return (node[AstTypes.Generic.lineno], taint_qualifier, name)
 
     def visit_Call(self, node):
         lineno, taint_qualifier, name = self.visit_Call_func(node['func'])
-        self.visit_Call_args(node[AstTypes.Call.args], lineno)
+        print("CALL: ", taint_qualifier, name)
+        self.visit_Call_args(node[AstTypes.Call.args],
+                             lineno, taint_qualifier, name)
         return ((taint_qualifier, name), )
 
     def visit_Name(self, node):
