@@ -100,11 +100,6 @@ def get_analysis_data(ast, pattern, debug=False):
 
     tfv.visit_ast()  # assign taint qualifiers
 
-    # unmarked_v = UnmarkedVisitor(ast)
-    # unmarked_v.visit_ast()
-    # if debug: report("AST:", ast) # check progress of taint qualifiers atribution
-
-    # print("UNMARKED LABELS: ", unmarked_v.labels)
     tf_labels = tfv.labels
 
     cv = ConstraintsPathFlowSenstivityVisitor(ast)
@@ -118,6 +113,7 @@ def get_analysis_data(ast, pattern, debug=False):
 
     scoped_constraints = cv.scoped_constraints
     path_feasibility_constraints = cv.path_feasibility_constraints
+
     sources = tfv.sources
     sinks = tfv.sinks
     if debug:
