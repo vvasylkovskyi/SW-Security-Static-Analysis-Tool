@@ -288,27 +288,28 @@ class ConstraintsResolver:
                     qualifiers.append(tf_labels[key])
         return qualifiers
 
-    def resolve_constraints_and_find_vulnerabilties(self, constraints, pattern, sources_ssa, sinks_ssa, tf_labels):
+    def resolve_constraints_and_find_vulnerabilties(self, path_feasibility_constraints, pattern, sources_ssa, sinks_ssa, tf_labels):
+        vulnerabilities = list()
         sources = pattern['sources']
         sinks = pattern['sinks']
         name = pattern['vulnerability']
-        vulnerabilities = list()
         for sink in sinks:
-            print("HERE SINK")
             for source in sources:
-                print("HERE SOURCE")
-                print("SINK: ", sink)
-                sink_qualifiers = self.get_qualifiers(
-                    [sink], tf_labels)
-                source_qualifiers = self.get_qualifiers(
-                    sources, tf_labels)
-                print("SINK QUALIFIERS: ", sink_qualifiers)
-                print("Source QUALIFIERS: ", source_qualifiers)
-                if self.has_vulnerability(constraints, source_qualifiers, sink_qualifiers, tf_labels):
-                    vulnerabilities_index = len(vulnerabilities) + 1
-                    vulnerability_name = name + "_" + vulnerabilities_index.__str__()
-                    vulnerability = Vulnerabilty(
-                        vulnerability_name, source, sink)
-                    vulnerabilities.append(vulnerability)
-        print("CHECK HERE VULN: ", vulnerabilities)
+                for _, constraints in path_feasibility_constraints.items():
+                    print("Constraints: ", constraints)
+                    print("HERE ARE SEVERAL OR WHAT")
+                    print("SOURCES: ", sources)
+                    sink_qualifiers = self.get_qualifiers(
+                        [sink], tf_labels)
+                    source_qualifiers = self.get_qualifiers(
+                        sources, tf_labels)
+                    print("SINK QUALIFIERS: ", sink_qualifiers)
+                    print("Source QUALIFIERS: ", source_qualifiers)
+                    if self.has_vulnerability(constraints, source_qualifiers, sink_qualifiers, tf_labels):
+                        vulnerabilities_index = len(vulnerabilities) + 1
+                        vulnerability_name = name + "_" + vulnerabilities_index.__str__()
+                        vulnerability = Vulnerabilty(
+                            vulnerability_name, source, sink)
+                        vulnerabilities.append(vulnerability)
+                        break
         return vulnerabilities

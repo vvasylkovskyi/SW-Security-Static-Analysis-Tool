@@ -70,14 +70,8 @@ def get_vulnerabilities(ast, pattern, variable_ssa_map, ssa_variable_map, tf_lab
     print("HERE", TaintedFlowSSASrcVisitor(ast).visit_ast())
 
     constraints_resolver = ConstraintsResolver()
-    vulnerabilities = list()
-    for scope, constraints in path_feasibility_constraints.items():
-        print("Constraints: ", constraints)
-        vulnerability = constraints_resolver.resolve_constraints_and_find_vulnerabilties(
-            sorted(set(constraints)), pattern, sources, sinks, tf_labels)
-
-        if vulnerability:
-            vulnerabilities = [*vulnerabilities, *vulnerability]
+    vulnerabilities = constraints_resolver.resolve_constraints_and_find_vulnerabilties(
+        path_feasibility_constraints, pattern, sources, sinks, tf_labels)
 
     formatted_vulnerabilities = list()
     for vulnerability in vulnerabilities:
