@@ -120,20 +120,20 @@ class ConstraintsPathFlowSenstivityVisitor(Visitor):
                 print("Return Name: ", return_name)
                 print("Visit Call Args: ", values)
                 print("YOO")
-                # constraint_return = Constraint(
-                #     lineno, return_qualifier, return_name, taint_qualifier, name)
-                # self._scoped_constraints[self._scope].append(constraint_return)
-
+                constraint_return = Constraint(
+                    lineno, taint_qualifier, name, return_qualifier, return_name)
+                self._scoped_constraints[self._scope].append(constraint_return)
+                print("CONSTRAINT RETURN: ", constraint_return)
                 constraint_arg = Constraint(
                     lineno, taint_qualifier, name, arg_qualifier, arg)
-                print("CONSTRAINT: ", constraint_arg)
-                print("CONSTRAINT arg taint qualifier: ", arg_taint_qualifier)
-                print("CONSTRAINT arg : ", arg)
-                print("CONSTRAINT name : ", name)
-                print("CONSTRAINT taint_q : ", taint_qualifier)
-                print("CONSTRAINT ARG QF: ", arg_qualifier)
-
-                self._scoped_constraints[self._scope].append(constraint_arg)
+                # print("CONSTRAINT: ", constraint_arg)
+                # print("CONSTRAINT arg taint qualifier: ", arg_taint_qualifier)
+                # print("CONSTRAINT arg : ", arg)
+                # print("CONSTRAINT name : ", name)
+                # print("CONSTRAINT taint_q : ", taint_qualifier)
+                # print("CONSTRAINT ARG QF: ", arg_qualifier)
+                # print("Constraint args: ", constraint_arg)
+                # self._scoped_constraints[self._scope].append(constraint_arg)
 
     def visit_Call_func(self, node):
         ((taint_qualifier, name),) = self.visit_Name(node)

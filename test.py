@@ -85,11 +85,11 @@ def run(test):
     print()
     output = load_json(test.output)
 
-    analysis = remove_names(analysis)
-    output = remove_names(output)
+    # analysis = remove_names(analysis)
+    # output = remove_names(output)
 
-    analysis = remove_sanitized_flows(analysis)
-    output = remove_sanitized_flows(output)
+    # analysis = remove_sanitized_flows(analysis)
+    # output = remove_sanitized_flows(output)
     print("Compare: \n")
     analysis = sorted(analysis, key=lambda d: (d['source'], d['sink']))
     output = sorted(output, key=lambda d: (d['source'], d['sink']))
