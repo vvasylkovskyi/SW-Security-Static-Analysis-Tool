@@ -14,16 +14,9 @@ class ConstraintsResolver:
 
     def add_to_queue_of_equations(self, equation):
         self.queue_of_equations.append(equation)
-        print("ADD QUEUE: ", self.queue_of_equations)
 
     def remove_equation_from_the_queue(self, equation):
-        print("REMOVE QUEUE: ", self.queue_of_equations)
         self.queue_of_equations.remove(equation)
-
-    def extract_next_from_queue(self):
-        eq = self.queue_of_equations[0]
-        self.remove_equation_from_the_queue(eq)
-        return eq
 
     def is_illegal_flow(self, constraint):
         # if tainted <= untainted
@@ -46,19 +39,9 @@ class ConstraintsResolver:
         if self.is_idempotent_equation(new_constraint):
             return resolution
         if not self.is_idempotent_equation(new_constraint) and new_constraint not in self.queue_of_equations:
-            print("IT IS YEE")
             self.add_to_queue_of_equations(new_constraint)
 
         return resolution
-
-    # TODO. Not working yet.
-    def check_if_source_is_being_sanitized(self, constraint):
-        print("y")
-        constraint_rhs = constraint.rhs_tq
-        if constraint_rhs == TaintQualifer.TAINTED:
-            print("Sanitizing?")
-            return True
-        return False
 
     def is_sink(self, qualifier, sink_qualifiers):
         for sink_qualifier in sink_qualifiers:
@@ -82,7 +65,6 @@ class ConstraintsResolver:
 
     def resolve_equation(self, resolution, new_constraint, sink_qualifiers):
         if self.is_idempotent_equation(new_constraint):
-            print("HERE")
             return resolution
 
         if self.try_simplify_equation(resolution, new_constraint, sink_qualifiers):
@@ -96,7 +78,7 @@ class ConstraintsResolver:
         print("New Constraint: ", new_constraint)
 
     def reduce_constraints(self, resolution, new_constraint, sink_qualifiers):
-        self.debug_print_compare_constraints(resolution, new_constraint)
+        # self.debug_print_compare_constraints(resolution, new_constraint)
         return self.resolve_equation(resolution, new_constraint,  sink_qualifiers)
 
     def is_constraints_contain_illegal_flow(self, constraints):
@@ -125,8 +107,6 @@ class ConstraintsResolver:
         return Constraint(resolution.line, lhs, resolution.lhs_id, rhs, resolution.rhs_id)
 
     def contains_target(self, constraint, qualifiers):
-        print("Source qualifier: ", qualifiers)
-        print("Constraint: ", constraint)
         lhs = constraint.lhs_tq
         rhs = constraint.rhs_tq
         for source_qualifier in qualifiers:
@@ -135,7 +115,6 @@ class ConstraintsResolver:
         return False
 
     def try_illegal_flow(self, resolution, source_qualifiers, sink_qualifiers):
-        print("TRYING")
         resolution = self.replace_qualifiers_with_sinks_and_sources(
             resolution, source_qualifiers, sink_qualifiers)
 
@@ -146,26 +125,13 @@ class ConstraintsResolver:
         return False
 
     def has_vulnerability(self, constraints, source_qualifiers, sink_qualifiers, tf_labels):
-        print("SINK SSA: ", sink_qualifiers)
-        # Run and check if contains vulnerability without resolving constraints
-        # if self.is_constraints_contain_illegal_flow(constraints):
-        #     return True
-
-        # # First Check
-        # if self.is_illegal_flow(resolution):
-        #     print("Is illegal flow!")
-        #     return True
-
-        # Run the constraints and reduce them until we reach the illegal flow,
-        # or until we finish the algorithm. If at the end of the algorithm there is no illegal flow, then no vulnerability exists
         constraint_index = 0
 
         resolution = constraints[constraint_index]  # Starting always from zero
 
-        while not self.contains_target(resolution, sink_qualifiers):
+        while not self.contains_target(resolution, sink_qualifiers) and constraint_index < len(constraints) - 1:
             constraint_index += 1
             resolution = constraints[constraint_index]
-            print("HERE: Adding: ", resolution)
             self.add_to_queue_of_equations(resolution)
 
         if self.try_illegal_flow(resolution, source_qualifiers, sink_qualifiers):
@@ -207,7 +173,6 @@ class ConstraintsResolver:
                 new_resolution = self.reduce_constraints(
                     resolution, constraint, sink_qualifiers)
                 if new_resolution != resolution:
-                    print("IS DIFFERENT: ", new_resolution)
                     can_reduce = True
                     resolution = new_resolution
                     self.remove_equation_from_the_queue(constraint)
@@ -218,16 +183,12 @@ class ConstraintsResolver:
 
             if can_reduce == False:
                 break  # Cannot reduce equations anymore
-            # resolution = self.reduce_constraints(resolution, constraint)
-
-                # self.remove_equation_from_the_queue(constraint)
 
             if self.is_illegal_flow(resolution):
                 print("Is illegal flow!")
                 return True
 
         print("RESOLUTION SO FAR: ", resolution)
-        # print("SOURCES VAR: ", sources_ssa)
         print("SINKS VARS: ", sink_qualifiers)
         print("TF_LABELS: ", tf_labels)
 
@@ -249,7 +210,6 @@ class ConstraintsResolver:
         for source in sources:
             for sink in sinks:
                 print("SINK: ", sink)
-                # print("SINK SSA: ", sinks_ssa)
                 sink_qualifiers = self.get_qualifiers(
                     [sink], tf_labels)
                 source_qualifiers = self.get_qualifiers(
@@ -262,7 +222,4 @@ class ConstraintsResolver:
                     vulnerability = Vulnerabilty(
                         vulnerability_name, source, sink)
                     vulnerabilities.append(vulnerability)
-
-        # relevant_vulnerabilties = self.filter_vulnerabilities_by_sinks(
-        #     vulnerabilities, sinks)
         return vulnerabilities
