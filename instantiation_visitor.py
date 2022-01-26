@@ -28,10 +28,6 @@ class InstantiationVisitor(Visitor):
 
         print("after instantiated: ", self.instantiated)
 
-    def remove_unisntantiated_vars_from_sink(self, name):
-        if name in self.pattern[FlowCategory.SINK]:
-            self.pattern[FlowCategory.SINK].remove(name)
-
     def visit_ast(self):
         module = self.visit_Module(self.ast)
 
@@ -64,17 +60,17 @@ class InstantiationVisitor(Visitor):
         print("Sources: ", self.sources)
         print("Name: ", name)
         print("HERE VISITING NAME just")
-        if not name in self.instantiated:
-            node[FlowCategory.__name__] = FlowCategory.SOURCE
-            self.sources.append(name)
-            print("HERE VISITING")
-            print("Sources: ", self.sources)
-            print("Name: ", name)
-            self.instantiated.add(name)
-            # self.remove_unisntantiated_vars_from_sink(name)
-            # print("PATTERN: ", self.pattern)
-        else:
-            self.assign_FlowCategory(node, name)
+        # if not name in self.instantiated:
+        # node[FlowCategory.__name__] = FlowCategory.SOURCE
+        # self.sources.append(name)
+        print("HERE VISITING")
+        print("Sources: ", self.sources)
+        print("Name: ", name)
+        # self.instantiated.add(name)
+        # self.remove_unisntantiated_vars_from_sink(name)
+        # print("PATTERN: ", self.pattern)
+        # else:
+        self.assign_FlowCategory(node, name)
 
     def visit_Compare_operand(self, node):
         ast_type = node[AstTypes.Generic.ast_type]

@@ -96,17 +96,11 @@ class ConstraintsPathFlowSenstivityVisitor(Visitor):
 
     def find_parent_scopes(self, current_scope):
         parent_scopes = list()
-        for scope, scoped_constraints in self._scoped_constraints_object.items():
-            print("Scope: ", len(scope))
-            print("CurrentScope, ", len(current_scope))
+        for scope, _ in self._scoped_constraints_object.items():
             level = 0
-            print("LEVEL: ", level)
-            print("Current Len scope: ", len(current_scope))
             while level < len(current_scope):
                 if level > len(scope) - 1 or level > len(current_scope) - 1:
                     break
-                print("Comparing scopes: ",
-                      current_scope[level], scope[level])
                 if current_scope[level] == scope[level]:
                     parent_scopes.append(scope)
                 level += 1
@@ -144,6 +138,12 @@ class ConstraintsPathFlowSenstivityVisitor(Visitor):
         for taint_qualifier, name in values:
             constraint = Constraint(
                 node[AstTypes.Generic.lineno], taint_qualifier, name, target_taint_qualifier, target_id)
+
+            value_is_function = node[AstTypes.Assign.value]['ast_type'] == 'Call'
+            if value_is_function:
+                self._scoped_constraints_object[self._scope]._instantiated_variables.append(
+                    name)
+
             self._scoped_constraints_object[self._scope]._instantiated_variables.append(
                 target_id)
 
@@ -179,6 +179,8 @@ class ConstraintsPathFlowSenstivityVisitor(Visitor):
                 # print("Return Name: ", return_name)
                 # print("Visit Call Args: ", values)
                 # print("YOO")
+                # print("TARGET_Function: ", return_name)
+                # print("Target function name: ", name)
                 constraint_return = Constraint(
                     lineno, taint_qualifier, name, return_qualifier, return_name)
                 self._scoped_constraints_object[self._scope]._scoped_constraints.append(
@@ -206,19 +208,16 @@ class ConstraintsPathFlowSenstivityVisitor(Visitor):
 
     def visit_Call_func(self, node):
         ((taint_qualifier, name),) = self.visit_Name(node)
-        # print("CALL FN")
         return (node[AstTypes.Generic.lineno], taint_qualifier, name)
 
     def visit_Call(self, node):
         lineno, taint_qualifier, name = self.visit_Call_func(node['func'])
-        # print("CALL: ", taint_qualifier, name)
         self.visit_Call_args(node[AstTypes.Call.args],
                              lineno, taint_qualifier, name)
         return ((taint_qualifier, name), )
 
     def visit_Name(self, node):
         taint_qualifier, name = node[TaintQualifer.__name__], node[Keys.SSA_NAME]
-        # print("Visiting name: ", name)
         return ((taint_qualifier, name), )
 
     def visit_Constant(self, node):

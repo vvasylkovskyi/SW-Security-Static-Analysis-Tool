@@ -71,12 +71,14 @@ def get_vulnerabilities(ast, pattern, variable_ssa_map, ssa_variable_map, tf_lab
 
     constraints_resolver = ConstraintsResolver()
     vulnerabilities = constraints_resolver.resolve_constraints_and_find_vulnerabilties(
-        path_feasibility_constraints, pattern, sources, sinks, tf_labels)
+        ssa_variable_map, path_feasibility_constraints, pattern, sources, sinks, tf_labels)
 
     formatted_vulnerabilities = list()
-    for vulnerability in vulnerabilities:
+    for index, vulnerability in enumerate(vulnerabilities):
+        count = index + 1
+        vulnerability_name = vulnerability.name + "_" + count.__str__()
         formatted_vulnerabilities.append(make_vulnerability(
-            vulnerability[0], vulnerability[1], vulnerability[2]))
+            vulnerability_name, vulnerability.source, vulnerability.sink))
 
     return formatted_vulnerabilities
 

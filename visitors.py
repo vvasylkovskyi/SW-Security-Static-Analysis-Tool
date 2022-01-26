@@ -1,6 +1,7 @@
 """
 """
 
+
 class AstTypes:
 
     class Generic:
@@ -8,8 +9,8 @@ class AstTypes:
         lineno = 'lineno'
         end_lineno = 'end_lineno'
         col_offset = 'col_offset'
-        end_col_offset ='end_col_offset'
-    
+        end_col_offset = 'end_col_offset'
+
     class Add:
         Key = 'Add'
 
@@ -24,7 +25,7 @@ class AstTypes:
         left = 'left'
         op = 'op'
         right = 'right'
-        
+
     class Break:
         Key = 'Break'
 
@@ -96,14 +97,11 @@ class Visitor:
 
     INDENTATION = "    "
 
-
     def __init__(self, ast):
         self.ast = ast
 
-
     def visit_ast(self):
         return self.visit_Module(self.ast)
-
 
     def visit_Module(self, node):
         """
@@ -114,7 +112,6 @@ class Visitor:
         :return:
         """
         return self.visit_body(node['body'])
-
 
     def visit_body_line(self, node):
         ast_type = node[AstTypes.Generic.ast_type]
@@ -129,10 +126,8 @@ class Visitor:
         elif ast_type == AstTypes.Break.Key:
             return self.visit_Break(node)
 
-
     def visit_body(self, nodes):
         return tuple(self.visit_body_line(node) for node in nodes)
-
 
     def visit_Compare_ops_op(self, node):
         ast_type = node[AstTypes.Generic.ast_type]
@@ -146,28 +141,23 @@ class Visitor:
             op = self.visit_Lt(node)
         return op
 
-
     def visit_Compare_ops(self, nodes):
         return tuple(self.visit_Compare_ops_op(node) for node in nodes)
 
-
     def visit_If_test(self, node):
         return {
-            AstTypes.Compare.Key : self.visit_Compare,
+            AstTypes.Compare.Key: self.visit_Compare,
             AstTypes.Expr.Key: self.visit_Expr,
-            AstTypes.Name.Key : self.visit_Name,
-            AstTypes.BinOp.Key : self.visit_BinOp,
-            AstTypes.Constant.Key : self.visit_Constant
+            AstTypes.Name.Key: self.visit_Name,
+            AstTypes.BinOp.Key: self.visit_BinOp,
+            AstTypes.Constant.Key: self.visit_Constant
         }[node[AstTypes.Generic.ast_type]](node)
-
 
     def visit_Assign_target(self, node):
         return self.visit_Name(node)
 
-
     def visit_Assign_targets(self, nodes):
         return tuple(self.visit_Assign_target(node) for node in nodes)
-
 
     def visit_Assign_value(self, node):
         ast_type = node[AstTypes.Generic.ast_type]
@@ -180,7 +170,6 @@ class Visitor:
         elif ast_type == AstTypes.BinOp.Key:
             return self.visit_BinOp(node)
 
-
     def visit_Assign(self, node):
         """
         :param node:
@@ -189,7 +178,6 @@ class Visitor:
         value = self.visit_Assign_value(node[AstTypes.Assign.value])
         targets = self.visit_Assign_targets(node[AstTypes.Assign.targets])
         return targets, value
-
 
     def visit_Call_func(self, node):
         """
@@ -204,7 +192,6 @@ class Visitor:
         """
         return self.visit_Name(node)
 
-
     def visit_Call_arg(self, node):
         ast_type = node[AstTypes.Generic.ast_type]
         if ast_type == AstTypes.Constant.Key:
@@ -217,10 +204,8 @@ class Visitor:
             arg = self.visit_BinOp(node)
         return arg
 
-
     def visit_Call_args(self, nodes):
         return list(self.visit_Call_arg(node) for node in nodes)
-
 
     def visit_Call(self, node):
         """
@@ -243,9 +228,7 @@ class Visitor:
         func = self.visit_Call_func(node[AstTypes.Call.func])
 
         args = self.visit_Call_args(node[AstTypes.Call.args])
-
         return func, args
-
 
     def visit_Expr_value(self, node):
         ast_type = node[AstTypes.Generic.ast_type]
@@ -258,14 +241,12 @@ class Visitor:
         elif ast_type == AstTypes.Constant.Key:
             return self.visit_Constant(node)
 
-
     def visit_Expr(self, node):
         """
         :param node:
         :return:
         """
         return self.visit_Expr_value(node[AstTypes.Expr.value])
-
 
     def visit_BinOp_operand(self, node):
         ast_type = node[AstTypes.Generic.ast_type]
@@ -278,14 +259,12 @@ class Visitor:
         elif ast_type == AstTypes.BinOp.Key:
             return self.visit_BinOp(node)
 
-
     def visit_BinOp_op(self, node):
         ast_type = node[AstTypes.Generic.ast_type]
         if ast_type == AstTypes.Add.Key:
             return self.visit_Add(node)
         else:
             raise NotImplementedError
-
 
     def visit_BinOp(self, node):
         """
@@ -300,19 +279,16 @@ class Visitor:
 
         return (left, op, right)
 
-
     def visit_Compare_operand(self, node):
         return {
-            AstTypes.Call.Key : self.visit_Call,
-            AstTypes.Name.Key : self.visit_Name,
-            AstTypes.BinOp.Key : self.visit_BinOp,
-            AstTypes.Constant.Key : self.visit_Constant
+            AstTypes.Call.Key: self.visit_Call,
+            AstTypes.Name.Key: self.visit_Name,
+            AstTypes.BinOp.Key: self.visit_BinOp,
+            AstTypes.Constant.Key: self.visit_Constant
         }[node[AstTypes.Generic.ast_type]](node)
-
 
     def visit_Compare_comparators(self, nodes):
         return tuple(self.visit_Compare_operand(node) for node in nodes)
-
 
     def visit_Compare(self, node):
         """
@@ -321,12 +297,12 @@ class Visitor:
         """
         left = self.visit_Compare_operand(node[AstTypes.Compare.left])
 
-        comparators = self.visit_Compare_comparators(node[AstTypes.Compare.comparators])
+        comparators = self.visit_Compare_comparators(
+            node[AstTypes.Compare.comparators])
 
         ops = self.visit_Compare_ops(node[AstTypes.Compare.ops])
 
         return (left, ops, comparators)
-
 
     def visit_While(self, node):
         """
@@ -338,7 +314,6 @@ class Visitor:
         # orelse = self.visit_body(node['orelse']) #TODO propagate to other visitors...
         return test, body
 
-
     def visit_If(self, node):
         """
         :param node:
@@ -348,7 +323,6 @@ class Visitor:
         body = self.visit_body(node[AstTypes.If.body])
         orelse = self.visit_body(node[AstTypes.If.orelse])
         return test, body, orelse
-
 
     def visit_Name(self, node):
         """
@@ -363,12 +337,10 @@ class Visitor:
         """
         return node[AstTypes.Name.id]
 
-
     def visit_Constant(self, node):
         """
         """
         return repr(node[AstTypes.Constant.value])
-
 
     def visit_Break(self, node):
         """
@@ -377,14 +349,12 @@ class Visitor:
         """
         return "break"
 
-
     def visit_Continue(self, node):
         """
         :param node:
         :return:
         """
         return "continue"
-
 
     def visit_Add(self, node):
         """
@@ -393,14 +363,12 @@ class Visitor:
         """
         return '+'
 
-
     def visit_NotEq(self, node):
         """
         :param node:
         :return:
         """
         return "!="
-
 
     def visit_Eq(self, node):
         """
@@ -409,14 +377,12 @@ class Visitor:
         """
         return "=="
 
-
     def visit_Gt(self, node):
         """
         :param node:
         :return:
         """
         return ">"
-
 
     def visit_Lt(self, node):
         """
@@ -425,14 +391,12 @@ class Visitor:
         """
         return "<"
 
-
     def visit_Load(self, node):
         """
         :param node:
         :return:
         """
         raise NotImplementedError(f"visitor for ast_type Load not implemented")
-
 
     def visit_Store(self, node):
         """
@@ -441,7 +405,8 @@ class Visitor:
         """
         # key = "k"
         # return node[key]
-        raise NotImplementedError(f"visitor for ast_type Store not implemented")
+        raise NotImplementedError(
+            f"visitor for ast_type Store not implemented")
 
 
 class Driver:

@@ -158,7 +158,6 @@ class ConstraintsResolver:
         return False
 
     def try_are_sink_and_source_params_of_the_same_func(self, sink_qualifiers, source_qualifiers):
-        print("ARE they")
         sink_flows_to = None
         source_flows_to = None
         for equation in self.queue_of_equations:
@@ -193,7 +192,7 @@ class ConstraintsResolver:
                 break
 
     def reduce_equations_in_queue(self, resolution, sink_qualifiers, source_qualifiers):
-        print("QUEUE contents: ", self.queue_of_equations)
+        # print("QUEUE contents: ", self.queue_of_equations)
 
         if self.queue_of_equations is Empty:
             return False
@@ -235,8 +234,8 @@ class ConstraintsResolver:
 
         while len(constraints) - 1 > constraint_index:
             constraint_index += 1
-            print("[Index:", constraint_index, "] Constraint: ",
-                  constraints[constraint_index])
+            # print("[Index:", constraint_index, "] Constraint: ",
+            #       constraints[constraint_index])
 
             if self.try_illegal_flow(constraints[constraint_index], source_qualifiers, sink_qualifiers):
                 print("Is illegal flow!")
@@ -246,7 +245,7 @@ class ConstraintsResolver:
                 resolution, constraints[constraint_index],  sink_qualifiers)
 
             if self.contains_target(resolution, sink_qualifiers):
-                print("Contains sink")
+                # print("Contains sink")
                 resolution = self.replace_qualifiers_with_sinks_and_sources(
                     resolution, source_qualifiers, sink_qualifiers)
 
@@ -263,20 +262,20 @@ class ConstraintsResolver:
         if is_illegal_flow:
             return True
 
-        print("HERE NOT REDUCING ANYMORE")
+        # print("HERE NOT REDUCING ANYMORE")
 
         self.reduce_queue_equations_locally()
 
-        print("OK; reduced. Now the queue: ", self.queue_of_equations)
+        # print("OK; reduced. Now the queue: ", self.queue_of_equations)
 
         if self.try_are_sink_and_source_params_of_the_same_func(sink_qualifiers, source_qualifiers):
             print("Is illegal flow!")
             return True
 
-        print("QUEUE: ", self.queue_of_equations)
-        print("RESOLUTION SO FAR: ", resolution)
-        print("SINKS VARS: ", sink_qualifiers)
-        print("TF_LABELS: ", tf_labels)
+        # print("QUEUE: ", self.queue_of_equations)
+        # print("RESOLUTION SO FAR: ", resolution)
+        # print("SINKS VARS: ", sink_qualifiers)
+        # print("TF_LABELS: ", tf_labels)
 
         return self.try_illegal_flow(resolution, source_qualifiers, sink_qualifiers)
 
@@ -288,11 +287,20 @@ class ConstraintsResolver:
                     qualifiers.append(tf_labels[key])
         return qualifiers
 
-    def get_uninstantiated_variables(self, constraints, tf_labels, instantiated_variables, defined_functions):
+    def map_ssa_to_variable(self, ssa_variable_map, ssa_variables_list):
+        variables = list()
+        for ssa_variable in ssa_variables_list:
+            if ssa_variable in ssa_variable_map:
+                variables.append(ssa_variable_map[ssa_variable])
+        return variables
+
+    def get_uninstantiated_variables(self, constraints, path_feasibility_constraints_item, ssa_variable_map, sources):
+        instantiated_variables = path_feasibility_constraints_item._instantiated_variables
+        defined_functions = path_feasibility_constraints_item._functions
         all_variables = list()
-        print("Checking")
-        print("Instantiated variables: ", instantiated_variables)
-        print("Defined functions: ", defined_functions)
+        # print("Checking")
+        # print("Instantiated variables: ", instantiated_variables)
+        # print("Defined functions: ", defined_functions)
         for constraint in constraints:
             lhs = constraint.lhs_id
             rhs = constraint.rhs_id
@@ -301,15 +309,71 @@ class ConstraintsResolver:
 
         all_instantiated_variables = [
             *instantiated_variables, *defined_functions]
-        uninstantiated_variables = [
+        uninstantiated_variables_ssa = [
             item for item in all_variables if item not in all_instantiated_variables]
 
         # print("All instantia: ", all_instantiated_variables)
         # print("All Variables: ", all_variables)
-        # print("uninstatiated: ", uninstantiated_variables)
-        return uninstantiated_variables
+        # defined_
+        # TODO Remove functions
+        uninstantiated_variables = self.map_ssa_to_variable(
+            ssa_variable_map, uninstantiated_variables_ssa)
+        uninstantiated_variables = [
+            item for item in uninstantiated_variables if item not in sources]
+        # print("uninstatiated FINAL: ", uninstantiated_variables)
+        return list(set(sorted(uninstantiated_variables)))
 
-    def resolve_constraints_and_find_vulnerabilties(self, path_feasibility_constraints, pattern, sources_ssa, sinks_ssa, tf_labels):
+    def is_new_vulnerability(self, vulnerabilities, name, source, sink):
+        for vulnerability in vulnerabilities:
+            if vulnerability.name == name and vulnerability.source == source and vulnerability.sink == sink:
+                print("Is not new")
+                return False
+        print("Is new")
+        return True
+
+    def add_vulnerability(self, vulnerabilities, name, source, sink):
+        if self.is_new_vulnerability(vulnerabilities, name, source, sink):
+            vulnerabilities.append(Vulnerabilty(name, source, sink))
+        return vulnerabilities
+
+    # def find_vulnerability(self):
+    #     constraints = path_feasibility_constraints_item._scoped_constraints
+    #     print("Constraints: ", constraints)
+    #     print("HERE ARE SEVERAL OR WHAT")
+
+    #     print("SOURCES: ", sources)
+    #     sink_qualifiers = self.get_qualifiers(
+    #         [sink], tf_labels)
+    #     source_qualifiers = self.get_qualifiers(
+    #         sources, tf_labels)
+    #     print("SINK QUALIFIERS: ", sink_qualifiers)
+    #     print("Source QUALIFIERS: ", source_qualifiers)
+
+    #     if self.has_vulnerability(constraints, source_qualifiers, sink_qualifiers, tf_labels):
+    #         vulnerabilities.append(self.add_vulnerability(
+    #             vulnerabilities, name, source, sink))
+
+    def try_add_vulnerability(self, vulnerabilities, name, current_source, path_feasibility_constraints_item, sources, sink, tf_labels):
+        constraints = path_feasibility_constraints_item._scoped_constraints
+        # print("Constraints: ", constraints)
+        # print("HERE ARE SEVERAL OR WHAT")
+
+        # print("SOURCES: ", sources)
+        sink_qualifiers = self.get_qualifiers(
+            [sink], tf_labels)
+        source_qualifiers = self.get_qualifiers(
+            sources, tf_labels)
+        print("Sources: ", sources)
+        # print("SINK QUALIFIERS: ", sink_qualifiers)
+        # print("Source QUALIFIERS: ", source_qualifiers)
+
+        if self.has_vulnerability(constraints, source_qualifiers, sink_qualifiers, tf_labels):
+            print("Has vulnerability")
+            vulnerabilities = self.add_vulnerability(
+                vulnerabilities, name, current_source, sink)
+        return vulnerabilities
+
+    def resolve_constraints_and_find_vulnerabilties(self, ssa_variable_map, path_feasibility_constraints, pattern, sources_ssa, sinks_ssa, tf_labels):
         vulnerabilities = list()
         uninstantiated_variables = list()
         sources = pattern['sources']
@@ -318,33 +382,19 @@ class ConstraintsResolver:
         for sink in sinks:
             for source in sources:
                 for _, path_feasibility_constraints_item in path_feasibility_constraints.items():
-                    constraints = path_feasibility_constraints_item._scoped_constraints
-                    instantiated_variables = path_feasibility_constraints_item._instantiated_variables
-                    defined_functions = path_feasibility_constraints_item._functions
-                    uninstantiated_variables = self.get_uninstantiated_variables(
-                        constraints, tf_labels, instantiated_variables, defined_functions)
+                    vulnerabilities = self.try_add_vulnerability(
+                        vulnerabilities, name, source, path_feasibility_constraints_item, sources, sink, tf_labels)
+                    break
 
                 for _, path_feasibility_constraints_item in path_feasibility_constraints.items():
+                    print("GO HERE")
+                    print("SOURCES SSA: ", sources_ssa)
                     constraints = path_feasibility_constraints_item._scoped_constraints
-                    instantiated_variables = path_feasibility_constraints_item._instantiated_variables
-                    defined_functions = path_feasibility_constraints_item._functions
-                    print("Constraints: ", constraints)
-                    print("HERE ARE SEVERAL OR WHAT")
+                    uninstantiated_variables = self.get_uninstantiated_variables(
+                        constraints, path_feasibility_constraints_item, ssa_variable_map, sources)
 
-                    print("SOURCES: ", sources)
-                    sink_qualifiers = self.get_qualifiers(
-                        [sink], tf_labels)
-                    source_qualifiers = self.get_qualifiers(
-                        sources, tf_labels)
-                    print("SINK QUALIFIERS: ", sink_qualifiers)
-                    print("Source QUALIFIERS: ", source_qualifiers)
-
-                    if self.has_vulnerability(constraints, source_qualifiers, sink_qualifiers, tf_labels):
-                        vulnerabilities_index = len(vulnerabilities) + 1
-                        vulnerability_name = name + "_" + vulnerabilities_index.__str__()
-                        vulnerability = Vulnerabilty(
-                            vulnerability_name, source, sink)
-                        vulnerabilities.append(vulnerability)
-                        break
+                    for uninstantiated_variable in uninstantiated_variables:
+                        vulnerabilities = self.try_add_vulnerability(
+                            vulnerabilities, name, uninstantiated_variable, path_feasibility_constraints_item, uninstantiated_variables, sink, tf_labels)
         print("Uninstantiated variables: ", uninstantiated_variables)
         return vulnerabilities
