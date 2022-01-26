@@ -10,6 +10,7 @@ from ssa_visitor import Keys as SSAKeys
 from visitors import Visitor, AstTypes
 from tf_visitor import TaintQualifer, CallArgKeys
 from constraints_visitor import Constraint
+from utilities import GreekLetters
 
 
 class Keys(PSKeys, SSAKeys):
@@ -47,6 +48,12 @@ class ConstraintsPathFlowSenstivityVisitor(Visitor):
     @property
     def path_feasibility_constraints(self):
         return self._path_feasibility_constraints_object
+
+    def next_label(self):
+        greek_letters_list = list(GreekLetters.greek_letters_lowercase)
+        next_greek_letter = greek_letters_list.pop(0)
+        GreekLetters.greek_letters_lowercase = tuple(greek_letters_list)
+        return next_greek_letter
 
     def make_path_feasibility_constraints(self):
         """
@@ -136,6 +143,11 @@ class ConstraintsPathFlowSenstivityVisitor(Visitor):
         ((target_taint_qualifier, target_id),) = targets[0]
 
         for taint_qualifier, name in values:
+            print("Constraint line: ", node[AstTypes.Generic.lineno])
+            print("Constraint TQ: ", taint_qualifier)
+            print("Constraint Name: ", name)
+            print("Constraint Target TQ: ", target_taint_qualifier)
+            print("Constraint Target Name: ", target_id)
             constraint = Constraint(
                 node[AstTypes.Generic.lineno], taint_qualifier, name, target_taint_qualifier, target_id)
 
@@ -156,6 +168,7 @@ class ConstraintsPathFlowSenstivityVisitor(Visitor):
                 dict.fromkeys(self._scoped_constraints_object[self._scope]._instantiated_variables))
             self._scoped_constraints_object[self._scope]._scoped_constraints.append(
                 constraint)
+        return self.super.visit_Assign(node)
 
     def visit_Call_arg(self, node):
         if node[AstTypes.Generic.ast_type] == AstTypes.BinOp.Key:
@@ -164,11 +177,29 @@ class ConstraintsPathFlowSenstivityVisitor(Visitor):
             return self.super.visit_Call_arg(node)
 
     def get_qualifier(self, arg):
-        # print("LABELS: ", self.labels)
         return self.labels[arg]
 
     def visit_Call_arg_as_parameter(self, node):
         return (node[CallArgKeys.Call_arg_TaintQualifer], node[CallArgKeys.Call_arg])
+
+    def visit_While(self, node):
+        _, body = self.super.visit_While(node)
+
+        if len(self._scoped_constraints_object[self._scope]._scoped_constraints) > 0:
+            last_constraint = self._scoped_constraints_object[self._scope]._scoped_constraints[-1]
+            next_symbolic_qualifier = self.next_label()
+            sym_constraint_from_last_constraint_to_test_tq = Constraint(
+                node[AstTypes.Generic.lineno], last_constraint.rhs_tq, last_constraint.rhs_id, next_symbolic_qualifier, '')
+            self._scoped_constraints_object[self._scope]._scoped_constraints.append(
+                sym_constraint_from_last_constraint_to_test_tq)
+
+            target_body_tq = body[0][1][0][0]
+            sym_constraint_from_sym_tq_to_first_body_tq = Constraint(
+                node[AstTypes.Generic.lineno], next_symbolic_qualifier, '', target_body_tq, '')
+            self._scoped_constraints_object[self._scope]._scoped_constraints.append(
+                sym_constraint_from_sym_tq_to_first_body_tq)
+
+        # return self.super.visit_While(node)
 
     def visit_Call_args(self, nodes, lineno, return_qualifier, return_name):
         for node in nodes:
@@ -176,12 +207,12 @@ class ConstraintsPathFlowSenstivityVisitor(Visitor):
             values = self.visit_Call_arg(node)  # >1 if BinOp
             arg_qualifier = self.get_qualifier(arg)
             for taint_qualifier, name in values:
-                # print("Return QF: ", return_qualifier)
-                # print("Return Name: ", return_name)
-                # print("Visit Call Args: ", values)
-                # print("YOO")
-                # print("TARGET_Function: ", return_name)
-                # print("Target function name: ", name)
+                print("Return QF: ", return_qualifier)
+                print("Return Name: ", return_name)
+                print("Visit Call Args: ", values)
+                print("YOO")
+                print("TARGET_Function: ", return_name)
+                print("Target function name: ", name)
                 constraint_return = Constraint(
                     lineno, taint_qualifier, name, return_qualifier, return_name)
                 self._scoped_constraints_object[self._scope]._scoped_constraints.append(
@@ -196,17 +227,18 @@ class ConstraintsPathFlowSenstivityVisitor(Visitor):
                 self._scoped_constraints_object[self._scope]._functions = list(
                     dict.fromkeys(self._scoped_constraints_object[self._scope]._functions))
                 # print("CONSTRAINT RETURN: ", constraint_return)
-                constraint_arg = Constraint(
-                    lineno, taint_qualifier, name, arg_qualifier, arg)
-                print("CONSTRAINT: ", constraint_arg)
+                # constraint_arg = Constraint(
+                #     lineno, taint_qualifier, name, arg_qualifier, arg)
+                # print("CONSTRAINT: ", constraint_arg)
                 print("CONSTRAINT arg taint qualifier: ", arg_taint_qualifier)
                 print("CONSTRAINT arg : ", arg)
                 print("CONSTRAINT name : ", name)
                 print("CONSTRAINT taint_q : ", taint_qualifier)
                 print("CONSTRAINT ARG QF: ", arg_qualifier)
-                print("Constraint args: ", constraint_arg)
+                # print("Constraint args: ", constraint_arg)
                 # self._scoped_constraints_object[self._scope]._scoped_constraints.append(
                 # constraint_arg)
+        return self.super.visit_Call_args(nodes)
 
     def visit_Call_func(self, node):
         ((taint_qualifier, name),) = self.visit_Name(node)

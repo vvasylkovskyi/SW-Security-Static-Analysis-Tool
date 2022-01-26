@@ -1,12 +1,12 @@
 from visitors import Visitor
-from utilities import greek_letters_lowercase
+from utilities import GreekLetters
 from instantiation_visitor import FlowCategory, CallArgKeys as InstantiationCallArgKeys
 
 
 class TaintQualifer:
     TAINTED = "tainted"
     UNTAINTED = "untainted"
-    labels = greek_letters_lowercase
+    labels = GreekLetters.greek_letters_lowercase
 
 
 class CallArgKeys(InstantiationCallArgKeys):
@@ -29,7 +29,11 @@ class TaintedFlowVisitor(Visitor):
         return self._labels_map
 
     def next_label(self):
-        return next(self._labels)
+        next_greek_letter = next(self._labels)
+        greek_letters_list = list(GreekLetters.greek_letters_lowercase)
+        greek_letters_list.remove(next_greek_letter)
+        GreekLetters.greek_letters_lowercase = tuple(greek_letters_list)
+        return next_greek_letter
 
     def check_for_Call_arg(self, node):
         if CallArgKeys.Call_arg in node and CallArgKeys.Call_arg_CallFlowCategory in node:

@@ -30,8 +30,7 @@ from tf_visitor import TaintedFlowVisitor
 from tf_ssa_src_visitor import TaintedFlowSSASrcVisitor
 from constraints_pf_sensitivity_visitor import ConstraintsPathFlowSenstivityVisitor
 from constraints_resolver import ConstraintsResolver
-from unmarked_visitor import UnmarkedVisitor
-from utilities import load_json
+from utilities import GreekLetters, load_json
 
 
 def report(context, obj):
@@ -95,7 +94,10 @@ def get_analysis_data(ast, pattern, debug=False):
 
     # mutate pattern, TODO arg names broken, move to before ssa?
     InstantiationVisitor(ast, **pattern).visit_ast()
-    print("PATTERN HERE: ", pattern)
+    GreekLetters.greek_letters_lowercase = tuple(
+        map(chr, range(0x03b1, 0x03c9+1)))
+    GreekLetters.greek_letters_uppercase = tuple(
+        map(chr, range(0x0391, 0x03a9+1)))
     # if debug: report("AST:", ast) #to check progress of instantiation
 
     tfv = TaintedFlowSSAVisitor(ast)
@@ -155,13 +157,13 @@ def main_experimental(ast, patterns, debug=False):
         report("SSA_VARIABLE:", ssa_variable_map)
 
     source_ssa = SSASrcVisitor(ast).visit_ast()
-    #if debug: report("SOURCE_SSA:", source_ssa)
+    # if debug: report("SOURCE_SSA:", source_ssa)
 
     # if debug: report("AST:", ast) # check progress of visitors
 
     patterns = load_json(patterns)
 
-    #if debug: report("PATTERNS:", patterns)
+    # if debug: report("PATTERNS:", patterns)
 
     vulnerabilities = list()
 
@@ -176,7 +178,7 @@ def main_experimental(ast, patterns, debug=False):
         vulnerabilities.extend(get_vulnerabilities(ast, pattern, variable_ssa_map,
                                ssa_variable_map, tf_labels, scoped_constraints, path_feasibility_constraints, sources, sinks))
 
-    #if debug: report("VULNERABILITIES:", vulnerabilities)
+    # if debug: report("VULNERABILITIES:", vulnerabilities)
 
     return vulnerabilities
 
