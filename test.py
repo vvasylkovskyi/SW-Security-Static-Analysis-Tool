@@ -65,9 +65,9 @@ def pprint_outputs():
     pprint_objects(Path("outputs"), slices.glob("*output.json"))
 
 
-def remove_names(array):
+def remove_names_index(array):
     for dict in array:
-        del dict['vulnerability']
+        dict['vulnerability'] = dict['vulnerability'][0]
     return array
 
 
@@ -85,8 +85,8 @@ def run(test):
     print()
     output = load_json(test.output)
 
-    # analysis = remove_names(analysis)
-    # output = remove_names(output)
+    analysis = remove_names_index(analysis)
+    output = remove_names_index(output)
 
     analysis = remove_sanitized_flows(analysis)
     output = remove_sanitized_flows(output)
