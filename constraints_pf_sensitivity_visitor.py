@@ -226,7 +226,7 @@ class ConstraintsPathFlowSenstivityVisitor(Visitor):
 
                 self._scoped_constraints_object[self._scope]._functions = list(
                     dict.fromkeys(self._scoped_constraints_object[self._scope]._functions))
-                # print("CONSTRAINT RETURN: ", constraint_return)
+                print("CONSTRAINT RETURN: ", constraint_return)
                 # constraint_arg = Constraint(
                 #     lineno, taint_qualifier, name, arg_qualifier, arg)
                 # print("CONSTRAINT: ", constraint_arg)
