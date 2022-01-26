@@ -23,6 +23,9 @@ class ConstraintsResolver:
         self.queue_of_equations.remove(next_equation)
         return next_equation
 
+    def reset_queue(self):
+        self.queue_of_equations = list()
+
     def is_illegal_flow(self, constraint):
         # if tainted <= untainted
         # means it is illegal flow
@@ -215,69 +218,8 @@ class ConstraintsResolver:
                 break  # Cannot reduce equations anymore
 
             if self.is_illegal_flow(resolution):
-                print("Is illegal flow!")
+                print("Is illegal flow! in the queue")
                 return True
-
-    def has_vulnerability(self, constraints, source_qualifiers, sink_qualifiers, tf_labels):
-        constraint_index = 0
-
-        resolution = constraints[constraint_index]  # Starting always from zero
-
-        while not self.contains_target(resolution, sink_qualifiers) and constraint_index < len(constraints) - 1:
-            constraint_index += 1
-            resolution = constraints[constraint_index]
-            self.add_to_queue_of_equations(resolution)
-
-        if self.try_illegal_flow(resolution, source_qualifiers, sink_qualifiers):
-            print("Is illegal flow!")
-            return True
-
-        while len(constraints) - 1 > constraint_index:
-            constraint_index += 1
-            # print("[Index:", constraint_index, "] Constraint: ",
-            #       constraints[constraint_index])
-
-            if self.try_illegal_flow(constraints[constraint_index], source_qualifiers, sink_qualifiers):
-                print("Is illegal flow!")
-                return True
-
-            resolution = self.reduce_constraints(
-                resolution, constraints[constraint_index],  sink_qualifiers)
-
-            if self.contains_target(resolution, sink_qualifiers):
-                # print("Contains sink")
-                resolution = self.replace_qualifiers_with_sinks_and_sources(
-                    resolution, source_qualifiers, sink_qualifiers)
-
-            if self.is_illegal_flow(resolution):
-                print("Is illegal flow!")
-                return True
-
-        if self.try_illegal_flow(resolution, source_qualifiers, sink_qualifiers):
-            return True
-
-        is_illegal_flow = self.reduce_equations_in_queue(
-            resolution, sink_qualifiers, source_qualifiers)
-
-        if is_illegal_flow:
-            return True
-
-        # print("HERE NOT REDUCING ANYMORE")
-
-        self.reduce_queue_equations_locally()
-
-        # print("OK; reduced. Now the queue: ", self.queue_of_equations)
-
-        if self.try_are_sink_and_source_params_of_the_same_func(sink_qualifiers, source_qualifiers):
-            print("Is illegal flow!")
-            return True
-
-        # print("QUEUE: ", self.queue_of_equations)
-        # print("RESOLUTION SO FAR: ", resolution)
-        # print("SINKS VARS: ", sink_qualifiers)
-        # print("TF_LABELS: ", tf_labels)
-
-        return self.try_illegal_flow(resolution, source_qualifiers, sink_qualifiers)
 
     def get_qualifiers(self, targets, tf_labels):
         qualifiers = list()
@@ -320,7 +262,7 @@ class ConstraintsResolver:
             ssa_variable_map, uninstantiated_variables_ssa)
         uninstantiated_variables = [
             item for item in uninstantiated_variables if item not in sources]
-        # print("uninstatiated FINAL: ", uninstantiated_variables)
+        print("uninstatiated FINAL: ", uninstantiated_variables)
         return list(set(sorted(uninstantiated_variables)))
 
     def is_new_vulnerability(self, vulnerabilities, name, source, sink):
@@ -336,23 +278,6 @@ class ConstraintsResolver:
             vulnerabilities.append(Vulnerabilty(name, source, sink))
         return vulnerabilities
 
-    # def find_vulnerability(self):
-    #     constraints = path_feasibility_constraints_item._scoped_constraints
-    #     print("Constraints: ", constraints)
-    #     print("HERE ARE SEVERAL OR WHAT")
-
-    #     print("SOURCES: ", sources)
-    #     sink_qualifiers = self.get_qualifiers(
-    #         [sink], tf_labels)
-    #     source_qualifiers = self.get_qualifiers(
-    #         sources, tf_labels)
-    #     print("SINK QUALIFIERS: ", sink_qualifiers)
-    #     print("Source QUALIFIERS: ", source_qualifiers)
-
-    #     if self.has_vulnerability(constraints, source_qualifiers, sink_qualifiers, tf_labels):
-    #         vulnerabilities.append(self.add_vulnerability(
-    #             vulnerabilities, name, source, sink))
-
     def try_add_vulnerability(self, vulnerabilities, name, current_source, path_feasibility_constraints_item, sources, sink, tf_labels):
         constraints = path_feasibility_constraints_item._scoped_constraints
         # print("Constraints: ", constraints)
@@ -364,14 +289,76 @@ class ConstraintsResolver:
         source_qualifiers = self.get_qualifiers(
             sources, tf_labels)
         print("Sources: ", sources)
-        # print("SINK QUALIFIERS: ", sink_qualifiers)
-        # print("Source QUALIFIERS: ", source_qualifiers)
+        print("Sink: ", sink)
+        print("SINK QUALIFIERS: ", sink_qualifiers)
+        print("Source QUALIFIERS: ", source_qualifiers)
 
         if self.has_vulnerability(constraints, source_qualifiers, sink_qualifiers, tf_labels):
             print("Has vulnerability")
             vulnerabilities = self.add_vulnerability(
                 vulnerabilities, name, current_source, sink)
         return vulnerabilities
+
+    def has_vulnerability(self, constraints, source_qualifiers, sink_qualifiers, tf_labels):
+        constraint_index = 0
+        resolution = constraints[constraint_index]  # Starting always from zero
+        self.reset_queue()
+
+        while not self.contains_target(resolution, sink_qualifiers) and constraint_index < len(constraints) - 1:
+            constraint_index += 1
+            resolution = constraints[constraint_index]
+            self.add_to_queue_of_equations(resolution)
+
+        if self.try_illegal_flow(resolution, source_qualifiers, sink_qualifiers):
+            print("Is illegal flow! First")
+            return True
+
+        while len(constraints) - 1 > constraint_index:
+            constraint_index += 1
+            print("[Index:", constraint_index, "] Constraint: ",
+                  constraints[constraint_index])
+
+            if self.try_illegal_flow(constraints[constraint_index], source_qualifiers, sink_qualifiers):
+                print("Is illegal flow! In the loop")
+                return True
+
+            resolution = self.reduce_constraints(
+                resolution, constraints[constraint_index],  sink_qualifiers)
+
+            if self.contains_target(resolution, sink_qualifiers):
+                # print("Contains sink")
+                resolution = self.replace_qualifiers_with_sinks_and_sources(
+                    resolution, source_qualifiers, sink_qualifiers)
+
+            if self.is_illegal_flow(resolution):
+                print("Is illegal flow! In the end")
+                return True
+
+        if self.try_illegal_flow(resolution, source_qualifiers, sink_qualifiers):
+            return True
+
+        is_illegal_flow = self.reduce_equations_in_queue(
+            resolution, sink_qualifiers, source_qualifiers)
+
+        if is_illegal_flow:
+            return True
+
+        # print("HERE NOT REDUCING ANYMORE")
+
+        self.reduce_queue_equations_locally()
+
+        # print("OK; reduced. Now the queue: ", self.queue_of_equations)
+
+        if self.try_are_sink_and_source_params_of_the_same_func(sink_qualifiers, source_qualifiers):
+            print("Is illegal flow!")
+            return True
+
+        # print("QUEUE: ", self.queue_of_equations)
+        # print("RESOLUTION SO FAR: ", resolution)
+        # print("SINKS VARS: ", sink_qualifiers)
+        # print("TF_LABELS: ", tf_labels)
+
+        return self.try_illegal_flow(resolution, source_qualifiers, sink_qualifiers)
 
     def resolve_constraints_and_find_vulnerabilties(self, ssa_variable_map, path_feasibility_constraints, pattern, sources_ssa, sinks_ssa, tf_labels):
         vulnerabilities = list()
@@ -384,11 +371,9 @@ class ConstraintsResolver:
                 for _, path_feasibility_constraints_item in path_feasibility_constraints.items():
                     vulnerabilities = self.try_add_vulnerability(
                         vulnerabilities, name, source, path_feasibility_constraints_item, sources, sink, tf_labels)
-                    break
+                    break  # only need 1 flow to state that there is a vulnerability. We could say in which flow we found it, but it is not required for the analysis.
 
                 for _, path_feasibility_constraints_item in path_feasibility_constraints.items():
-                    print("GO HERE")
-                    print("SOURCES SSA: ", sources_ssa)
                     constraints = path_feasibility_constraints_item._scoped_constraints
                     uninstantiated_variables = self.get_uninstantiated_variables(
                         constraints, path_feasibility_constraints_item, ssa_variable_map, sources)
@@ -396,5 +381,4 @@ class ConstraintsResolver:
                     for uninstantiated_variable in uninstantiated_variables:
                         vulnerabilities = self.try_add_vulnerability(
                             vulnerabilities, name, uninstantiated_variable, path_feasibility_constraints_item, uninstantiated_variables, sink, tf_labels)
-        print("Uninstantiated variables: ", uninstantiated_variables)
         return vulnerabilities

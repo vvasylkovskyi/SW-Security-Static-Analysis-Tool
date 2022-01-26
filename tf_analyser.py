@@ -142,7 +142,8 @@ def main_experimental(ast, patterns, debug=False):
     psv = PathSensitivityVisitor(ast)
     psv.visit_ast()
 
-    #if debug: report("PS_CONDITIONS:", psv.conditions)
+    if debug:
+        report("PS_CONDITIONS:", psv.conditions)
 
     ssav = ScopedSingleStaticAssignmentVisitor(ast)
     ssav.visit_ast()
@@ -165,6 +166,7 @@ def main_experimental(ast, patterns, debug=False):
     vulnerabilities = list()
 
     for pattern in patterns:
+        CleanAstVisitor(ast).visit_ast()
 
         # if debug: report("PATTERN:", pattern) # to compare to after their mutation
 

@@ -23,7 +23,7 @@ class ScopedConstraints():
         self._functions = list()
 
     def __repr__(self):
-        return f"{self._scoped_constraints}: Instantiated Variables - {self._instantiated_variables}: Defined Functions {self._functions}"
+        return f"{self._scoped_constraints}"
 
 
 class ConstraintsPathFlowSenstivityVisitor(Visitor):
@@ -70,30 +70,6 @@ class ConstraintsPathFlowSenstivityVisitor(Visitor):
         for pf_constraints in self._path_feasibility_constraints_object.values():
             pf_constraints._scoped_constraints.sort()
 
-    def visit_ast(self):
-        v = self.super.visit_ast()
-        self.make_path_feasibility_constraints()
-        return v
-
-    def visit_body_line(self, node):
-        self._scope = tuple(node[Keys.CONDITIONS])
-        return self.super.visit_body_line(node)
-
-    def visit_Assign_target(self, node):
-        return self.visit_Name(node)
-
-    def visit_BinOp_operand(self, node):
-        if node[AstTypes.Generic.ast_type] == AstTypes.BinOp.Key:
-            return self.visit_BinOp_operand(node[AstTypes.BinOp.left]) + self.visit_BinOp_operand(node[AstTypes.BinOp.right])
-        else:
-            return self.super.visit_BinOp_operand(node)
-
-    def visit_Assign_value(self, node):
-        if node[AstTypes.Generic.ast_type] == AstTypes.BinOp.Key:
-            return self.visit_BinOp_operand(node[AstTypes.BinOp.left]) + self.visit_BinOp_operand(node[AstTypes.BinOp.right])
-        else:
-            return self.super.visit_Assign_value(node)
-
     def find_parent_scopes(self, current_scope):
         parent_scopes = list()
         for scope, _ in self._scoped_constraints_object.items():
@@ -126,6 +102,30 @@ class ConstraintsPathFlowSenstivityVisitor(Visitor):
                 self._scoped_constraints_object[parent_scope]._functions)
         return defined_functions
 
+    def visit_ast(self):
+        v = self.super.visit_ast()
+        self.make_path_feasibility_constraints()
+        return v
+
+    def visit_body_line(self, node):
+        self._scope = tuple(node[Keys.CONDITIONS])
+        return self.super.visit_body_line(node)
+
+    def visit_Assign_target(self, node):
+        return self.visit_Name(node)
+
+    def visit_BinOp_operand(self, node):
+        if node[AstTypes.Generic.ast_type] == AstTypes.BinOp.Key:
+            return self.visit_BinOp_operand(node[AstTypes.BinOp.left]) + self.visit_BinOp_operand(node[AstTypes.BinOp.right])
+        else:
+            return self.super.visit_BinOp_operand(node)
+
+    def visit_Assign_value(self, node):
+        if node[AstTypes.Generic.ast_type] == AstTypes.BinOp.Key:
+            return self.visit_BinOp_operand(node[AstTypes.BinOp.left]) + self.visit_BinOp_operand(node[AstTypes.BinOp.right])
+        else:
+            return self.super.visit_Assign_value(node)
+
     def visit_Assign(self, node):
 
         values = self.visit_Assign_value(node[AstTypes.Assign.value])
@@ -139,6 +139,7 @@ class ConstraintsPathFlowSenstivityVisitor(Visitor):
             constraint = Constraint(
                 node[AstTypes.Generic.lineno], taint_qualifier, name, target_taint_qualifier, target_id)
 
+            # Add function calls
             value_is_function = node[AstTypes.Assign.value]['ast_type'] == 'Call'
             if value_is_function:
                 self._scoped_constraints_object[self._scope]._instantiated_variables.append(
@@ -161,6 +162,32 @@ class ConstraintsPathFlowSenstivityVisitor(Visitor):
             return self.visit_BinOp_operand(node[AstTypes.BinOp.left]) + self.visit_BinOp_operand(node[AstTypes.BinOp.right])
         else:
             return self.super.visit_Call_arg(node)
+
+    # def visit_If(self, node):
+    #     print("visit if here")
+    #     test = self.visit_If_test(node[AstTypes.If.test])
+    #     print("IF TEST: ", test)
+    #     body = self.visit_body(node[AstTypes.If.body])
+    #     print("Body test: ", test)
+
+    # def visit_While(self, node):
+
+    #     test = self.visit_If_test(node[AstTypes.While.test])
+    #     condition = (test, True)
+
+    #     # self._conditions.append(condition)
+    #     print("Loop Condition: ", condition)
+    #     # self._current_conditions.append(condition)
+
+    #     body = self.visit_body(node[AstTypes.While.body])
+
+    #     print("Body: ", body)
+    #     # self._current_conditions.pop()
+
+    #     print("visit WHILE here")
+    #     # print("Test", test)
+    #     # print("Body", body)
+    #     # return test, body
 
     def get_qualifier(self, arg):
         # print("LABELS: ", self.labels)

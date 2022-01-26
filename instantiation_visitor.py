@@ -26,7 +26,7 @@ class InstantiationVisitor(Visitor):
         self.instantiated = set(self.sources).union(
             self.sinks)  # variables only
 
-        print("after instantiated: ", self.instantiated)
+        # print("after instantiated: ", self.instantiated)
 
     def visit_ast(self):
         module = self.visit_Module(self.ast)
@@ -43,12 +43,12 @@ class InstantiationVisitor(Visitor):
         return node[FlowCategory.__name__]
 
     def visit_Name_for_target(self, node):
-        print("HERE VISITING NAME TARGET")
+        # print("HERE VISITING NAME TARGET")
         name = self.visit_Name(node)
-        print("HERE YOLO VISITING NAME TARGET")
-        print("yoyo NAME: ", name)
+        # print("HERE YOLO VISITING NAME TARGET")
+        # print("yoyo NAME: ", name)
         self.instantiated.add(name)
-        print("New instantiateds: ", self.instantiated)
+        # print("New instantiateds: ", self.instantiated)
         self.assign_FlowCategory(node, name)
 
     def visit_Assign_targets(self, nodes):
@@ -57,15 +57,15 @@ class InstantiationVisitor(Visitor):
 
     def visit_Name_for_value(self, node):
         name = self.visit_Name(node)
-        print("Sources: ", self.sources)
-        print("Name: ", name)
-        print("HERE VISITING NAME just")
+        # print("Sources: ", self.sources)
+        # print("Name: ", name)
+        # print("HERE VISITING NAME just")
         # if not name in self.instantiated:
         # node[FlowCategory.__name__] = FlowCategory.SOURCE
         # self.sources.append(name)
-        print("HERE VISITING")
-        print("Sources: ", self.sources)
-        print("Name: ", name)
+        # print("HERE VISITING")
+        # print("Sources: ", self.sources)
+        # print("Name: ", name)
         # self.instantiated.add(name)
         # self.remove_unisntantiated_vars_from_sink(name)
         # print("PATTERN: ", self.pattern)
