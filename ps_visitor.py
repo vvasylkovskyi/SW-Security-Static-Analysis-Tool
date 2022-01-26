@@ -44,7 +44,7 @@ class PathSensitivityVisitor(Visitor):
 
         body = self.visit_body(node[AstTypes.While.body])
 
-        # self._current_conditions.pop() # TODO find when to terminate loop
+        # self._current_conditions.pop()  # TODO find when to terminate loop
 
         print("TEST AND BODY OF WHILE")
         print("Test", test)

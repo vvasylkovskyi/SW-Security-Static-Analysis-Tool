@@ -163,32 +163,6 @@ class ConstraintsPathFlowSenstivityVisitor(Visitor):
         else:
             return self.super.visit_Call_arg(node)
 
-    # def visit_If(self, node):
-    #     print("visit if here")
-    #     test = self.visit_If_test(node[AstTypes.If.test])
-    #     print("IF TEST: ", test)
-    #     body = self.visit_body(node[AstTypes.If.body])
-    #     print("Body test: ", test)
-
-    # def visit_While(self, node):
-
-    #     test = self.visit_If_test(node[AstTypes.While.test])
-    #     condition = (test, True)
-
-    #     # self._conditions.append(condition)
-    #     print("Loop Condition: ", condition)
-    #     # self._current_conditions.append(condition)
-
-    #     body = self.visit_body(node[AstTypes.While.body])
-
-    #     print("Body: ", body)
-    #     # self._current_conditions.pop()
-
-    #     print("visit WHILE here")
-    #     # print("Test", test)
-    #     # print("Body", body)
-    #     # return test, body
-
     def get_qualifier(self, arg):
         # print("LABELS: ", self.labels)
         return self.labels[arg]
@@ -222,16 +196,17 @@ class ConstraintsPathFlowSenstivityVisitor(Visitor):
                 self._scoped_constraints_object[self._scope]._functions = list(
                     dict.fromkeys(self._scoped_constraints_object[self._scope]._functions))
                 # print("CONSTRAINT RETURN: ", constraint_return)
-                # constraint_arg = Constraint(
-                #     lineno, taint_qualifier, name, arg_qualifier, arg)
-                # print("CONSTRAINT: ", constraint_arg)
-                # print("CONSTRAINT arg taint qualifier: ", arg_taint_qualifier)
-                # print("CONSTRAINT arg : ", arg)
-                # print("CONSTRAINT name : ", name)
-                # print("CONSTRAINT taint_q : ", taint_qualifier)
-                # print("CONSTRAINT ARG QF: ", arg_qualifier)
-                # print("Constraint args: ", constraint_arg)
-                # self._scoped_constraints[self._scope].append(constraint_arg)
+                constraint_arg = Constraint(
+                    lineno, taint_qualifier, name, arg_qualifier, arg)
+                print("CONSTRAINT: ", constraint_arg)
+                print("CONSTRAINT arg taint qualifier: ", arg_taint_qualifier)
+                print("CONSTRAINT arg : ", arg)
+                print("CONSTRAINT name : ", name)
+                print("CONSTRAINT taint_q : ", taint_qualifier)
+                print("CONSTRAINT ARG QF: ", arg_qualifier)
+                print("Constraint args: ", constraint_arg)
+                # self._scoped_constraints_object[self._scope]._scoped_constraints.append(
+                # constraint_arg)
 
     def visit_Call_func(self, node):
         ((taint_qualifier, name),) = self.visit_Name(node)
