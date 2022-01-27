@@ -26,7 +26,6 @@ class PathSensitivityVisitor(Visitor):
 
     def visit_body_line(self, node):
         node[Keys.CONDITIONS] = self._current_conditions.copy()
-        print("Visit line")
         return self.super.visit_body_line(node)
 
     def visit_Compare(self, node):
@@ -39,16 +38,12 @@ class PathSensitivityVisitor(Visitor):
         condition = (test, True)
 
         self._conditions.append(condition)
-        print("Loop Condition: ", condition)
         self._current_conditions.append(condition)
 
         body = self.visit_body(node[AstTypes.While.body])
 
         # self._current_conditions.pop()  # TODO find when to terminate loop
 
-        print("TEST AND BODY OF WHILE")
-        print("Test", test)
-        print("Body", body)
         return test, body
 
     def visit_If(self, node):
@@ -60,7 +55,6 @@ class PathSensitivityVisitor(Visitor):
 
         self._current_conditions.append(condition)
 
-        # print("Condition: ", condition)
         body = self.visit_body(node[AstTypes.If.body])
 
         condition = (test, False)

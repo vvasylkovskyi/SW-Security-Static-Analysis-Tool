@@ -89,8 +89,8 @@ class ConstraintsResolver:
         elif self.is_idempotent_equation(new_constraint):
             return resolution
 
-        print("[RESOLVING EQUATION] - Resolution: ", resolution,
-              "| Constraint: ", new_constraint)
+        # print("[RESOLVING EQUATION] - Resolution: ", resolution,
+        #       "| Constraint: ", new_constraint)
         if self.try_simplify_equation(resolution, new_constraint, sink_qualifiers):
             return self.try_simplify_equation(resolution, new_constraint, sink_qualifiers)
         else:
@@ -101,8 +101,36 @@ class ConstraintsResolver:
         print("Resolution: ", resolution)
         print("New Constraint: ", new_constraint)
 
-    def reduce_constraints(self, resolution, new_constraint, sink_qualifiers):
+    def reduce_constraints(self, resolution, new_constraint, sink_qualifiers, source_qualifiers):
         # self.debug_print_compare_constraints(resolution, new_constraint)
+
+        # resolution_lhs_tq = resolution.lhs_tq
+        # resolution_rhs_tq = resolution.rhs_tq
+
+        # new_constraint_lhs_tq = new_constraint.lhs_tq
+        # new_constraint_rhs_tq = new_constraint.rhs_tq
+
+        # print("SINK QUALIFIERS: ", sink_qualifiers)
+        # print("SOURCE QUALIFIERS: ", source_qualifiers)
+
+        # print("RESOLUTION LHS: ", resolution_lhs_tq)
+        # print("RESOLUTION RHS: ", resolution_rhs_tq)
+        # print("Resolution: ", resolution)
+        # print("NEW CONSTRAINT LHS: ", new_constraint_lhs_tq)
+        # print("NEW CONSTRAINT RHS: ", new_constraint_rhs_tq)
+        # print("NEW CONSTRAINT: ", new_constraint)
+
+        # if resolution_lhs_tq in source_qualifiers:
+        #     print("ONE PART")
+        # if resolution_lhs_tq in source_qualifiers and resolution_rhs_tq in sink_qualifiers:
+        #     print("YO IT IS WORKING")
+        # elif new_constraint_lhs_tq in source_qualifiers and new_constraint_rhs_tq in sink_qualifiers:
+        #     print("YO IT IS WORKING")
+        if new_constraint.rhs_tq in source_qualifiers:
+            return resolution
+        elif resolution.rhs_tq in source_qualifiers:
+            return new_constraint
+
         return self.resolve_equation(resolution, new_constraint,  sink_qualifiers)
 
     def is_constraints_contain_illegal_flow(self, constraints):
@@ -185,7 +213,8 @@ class ConstraintsResolver:
         # print("-----In the queue----")
         while True:
             can_reduce = False
-            for constraint in self.queue_of_equations:
+            for index, _ in enumerate(self.queue_of_equations):
+                constraint = self.queue_of_equations[-index-1]
                 if self.try_simplify_equation_in_queue(local_resolution, constraint):
                     new_resolution = self.try_simplify_equation_in_queue(
                         local_resolution, constraint)
@@ -200,7 +229,7 @@ class ConstraintsResolver:
                 break
 
     def reduce_equations_in_queue(self, resolution, sink_qualifiers, source_qualifiers):
-        # print("QUEUE contents: ", self.queue_of_equations)
+        print("QUEUE contents: ", self.queue_of_equations)
 
         if self.queue_of_equations is Empty:
             return False
@@ -209,7 +238,7 @@ class ConstraintsResolver:
             can_reduce = False
             for constraint in self.queue_of_equations:
                 new_resolution = self.reduce_constraints(
-                    resolution, constraint, sink_qualifiers)
+                    resolution, constraint, sink_qualifiers, source_qualifiers)
                 if new_resolution != resolution:
                     can_reduce = True
                     resolution = new_resolution
@@ -289,6 +318,7 @@ class ConstraintsResolver:
         # print("SOURCES: ", sources)
         sink_qualifiers = self.get_qualifiers(
             [sink], tf_labels)
+        print("---------SOURCES-----------: ", sources)
         source_qualifiers = self.get_qualifiers(
             sources, tf_labels)
         # print("Sources: ", sources)
@@ -318,18 +348,18 @@ class ConstraintsResolver:
                 formatted_constraints.append(constraint)
                 number_of_possible_flows -= 1
 
-        for constraint in constraints:
-            original_lhs = constraint.lhs_tq
-            number_of_possible_flows = 0
-            for copy_constraint in copy_constraints:
-                if copy_constraint == constraint:
-                    continue
-                copy_rhs = copy_constraint.rhs_tq
-                if copy_rhs == original_lhs:
-                    number_of_possible_flows += 1
-            while number_of_possible_flows > 1:
-                formatted_constraints.append(constraint)
-                number_of_possible_flows -= 1
+        # for constraint in constraints:
+        #     original_lhs = constraint.lhs_tq
+        #     number_of_possible_flows = 0
+        #     for copy_constraint in copy_constraints:
+        #         if copy_constraint == constraint:
+        #             continue
+        #         copy_rhs = copy_constraint.rhs_tq
+        #         if copy_rhs == original_lhs:
+        #             number_of_possible_flows += 1
+        #     while number_of_possible_flows > 1:
+        #         formatted_constraints.append(constraint)
+        #         number_of_possible_flows -= 1
 
             # rhs = constraint.rhs_id
         return sorted(formatted_constraints)
@@ -348,9 +378,9 @@ class ConstraintsResolver:
             resolution = constraints[constraint_index]
             self.add_to_queue_of_equations(resolution)
 
-        # if self.try_illegal_flow(resolution, source_qualifiers, sink_qualifiers):
-        #     print("Is illegal flow! First")
-        #     return True
+        if self.try_illegal_flow(resolution, source_qualifiers, sink_qualifiers):
+            print("Is illegal flow! First")
+            return True
 
         while constraint_index < len(constraints) - 1:
             constraint_index += 1
@@ -362,7 +392,7 @@ class ConstraintsResolver:
                 return True
 
             resolution = self.reduce_constraints(
-                resolution, constraints[constraint_index], sink_qualifiers)
+                resolution, constraints[constraint_index], sink_qualifiers, source_qualifiers)
 
             if self.contains_target(resolution, sink_qualifiers):
                 # print("Contains sink")
@@ -382,11 +412,11 @@ class ConstraintsResolver:
         if is_illegal_flow:
             return True
 
-        # print("HERE NOT REDUCING ANYMORE")
+        print("HERE NOT REDUCING ANYMORE")
 
         self.reduce_queue_equations_locally()
 
-        # print("OK; reduced. Now the queue: ", self.queue_of_equations)
+        print("OK; reduced. Now the queue: ", self.queue_of_equations)
 
         for resolution in self.queue_of_equations:
             is_illegal_flow = self.reduce_equations_in_queue(

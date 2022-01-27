@@ -14,45 +14,48 @@ class ScopedSingleStaticAssignmentVisitor(Visitor):
         super(ScopedSingleStaticAssignmentVisitor, self).__init__(ast)
         self.super = super(ScopedSingleStaticAssignmentVisitor, self)
 
-        self._ssa_variable_map = dict() #map ssa back to original name
-        self._variable_ssa_map = {tuple(default_conditions):defaultdict(list)} #for every scope access ssa from name
+        self._ssa_variable_map = dict()  # map ssa back to original name
+        # for every scope access ssa from name
+        self._variable_ssa_map = {tuple(default_conditions): defaultdict(list)}
         self._scope = None
-        self._scope_ssa_set = defaultdict(set)  # do not duplicate ssa variables
-
+        # do not duplicate ssa variables
+        self._scope_ssa_set = defaultdict(set)
 
     @property
     def ssa_variable_map(self):
         return self._ssa_variable_map
 
-
     @property
     def variable_ssa_map(self):
         return self._variable_ssa_map
 
-
     def initialize_scope(self):
-
+        print("initialize scope")
         self._variable_ssa_map[self._scope] = defaultdict(list)
         inscope = set()
         scopes = len(self._scope)
         i = 1
         while i < scopes:
-            for k,v in self._variable_ssa_map[self._scope[:i]].items():
+            print("Scopes: ", scopes)
+            for k, v in self._variable_ssa_map[self._scope[:i]].items():
+                print("Items: k: ", k)
+                print("Items: v: ", v)
                 for n in v:
                     if n not in inscope:
                         self._variable_ssa_map[self._scope][k].append(n)
+                print("inscope update: ", inscope)
+                print("update: ", v)
                 inscope.update(v)
-            i+=1
-
+            i += 1
 
     def make_non_scope_overlaping_ssa_name(self, name):
-        i = len(self._variable_ssa_map[self._scope][name]) #creates empty list for name in self._variable_ssa_map[self._scope]
+        # creates empty list for name in self._variable_ssa_map[self._scope]
+        i = len(self._variable_ssa_map[self._scope][name])
         ssa_name = f"{name}_{i}"
         while ssa_name in self._ssa_variable_map:
             i += 1
             ssa_name = f"{name}_{i}"
         return ssa_name
-
 
     def make_ssa_name(self, name):
 
@@ -64,7 +67,6 @@ class ScopedSingleStaticAssignmentVisitor(Visitor):
 
         return ssa_name
 
-
     def visit_body_line(self, node):
 
         self._scope = tuple(node[Keys.CONDITIONS])
@@ -72,15 +74,14 @@ class ScopedSingleStaticAssignmentVisitor(Visitor):
             self.initialize_scope()
         return self.super.visit_body_line(node)
 
-
     def visit_Assign_target(self, node):
 
         target_id = self.super.visit_Name(node)
 
         node[Keys.SSA_NAME] = self.make_ssa_name(target_id)
+        # node[Keys.SSA_NAME] = target_id
 
         return target_id
-
 
     def visit_Name(self, node):
 
@@ -89,6 +90,7 @@ class ScopedSingleStaticAssignmentVisitor(Visitor):
         if name in self._variable_ssa_map[self._scope]:
             node[Keys.SSA_NAME] = self._variable_ssa_map[self._scope][name][-1]
         else:
+            # node[Keys.SSA_NAME] = name
             node[Keys.SSA_NAME] = self.make_ssa_name(name)
 
         return name

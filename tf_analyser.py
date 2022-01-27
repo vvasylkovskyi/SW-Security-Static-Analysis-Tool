@@ -14,6 +14,7 @@ $ python tf_analyser.py <ast> <vulnerabilities>
 from pathlib import Path
 from pprint import pprint
 import json
+from constraints_visitor import Constraint
 
 # from pointers_visitor import PointersVisitor
 # from tf_src_visitor import TaintedFlowSrcVisitor
@@ -90,7 +91,56 @@ def resolve_sources(sources, labels):
     return resolved_sources
 
 
-def get_analysis_data(ast, pattern, debug=False):
+def get_variables_ssa(key, ssa_variable_map):
+    print("")
+    variables_ssa = list()
+    for ssa_key in ssa_variable_map:
+        print("SSA KEY: ", ssa_key)
+        print("KEY: ", key)
+        print("MAP: ", ssa_variable_map[ssa_key])
+        if ssa_variable_map[ssa_key] == key:
+            variables_ssa.append(ssa_key)
+    return variables_ssa
+
+
+def link_constraints_for_the_same_ssa_per_path_feasibility_constraints(variable_ssa_map, ssa_variable_map, path_feasibility_constraints, tf_labels):
+    for scope in variable_ssa_map:
+        print("Variable to SSA: ", scope)
+        print("Variables: ", variable_ssa_map[scope])
+        for key in variable_ssa_map[scope].keys():
+            print("var: ", key)
+            print("SSSA VAR MAP: ", ssa_variable_map)
+            values = variable_ssa_map[scope][key]
+            # values = get_variables_ssa(key, ssa_variable_map)
+            print("value: ", values)
+            if len(values) > 1:
+                type_qualifiers = list()
+                for value in values:
+                    type_qualifiers.append(tf_labels[value])
+                print("Type qualifiers: ", type_qualifiers)
+                first_type_qualifier = type_qualifiers[0]
+                single_path_feasibility_constraints = path_feasibility_constraints[scope]
+                print("PATH FEASIBILITY: ", single_path_feasibility_constraints)
+                updated_scoped_constraints = list()
+                print("Original constraints: ",
+                      single_path_feasibility_constraints._scoped_constraints)
+                for constraint in single_path_feasibility_constraints._scoped_constraints:
+                    lhs_tq = constraint.lhs_tq
+                    if lhs_tq in type_qualifiers and lhs_tq is not first_type_qualifier:
+                        lhs_tq = first_type_qualifier
+                    rhs_tq = constraint.rhs_tq
+                    if rhs_tq in type_qualifiers and rhs_tq is not first_type_qualifier:
+                        rhs_tq = first_type_qualifier
+                    new_constraint = Constraint(
+                        constraint.line, lhs_tq, constraint.lhs_id, rhs_tq, constraint.rhs_id)
+                    updated_scoped_constraints.append(new_constraint)
+                    print("Constraint: ", constraint)
+                single_path_feasibility_constraints._scoped_constraints = updated_scoped_constraints
+                print("Updated constraints: ",
+                      single_path_feasibility_constraints._scoped_constraints)
+
+
+def get_analysis_data(ast, pattern, variable_ssa_map, ssa_variable_map, debug=False):
 
     # mutate pattern, TODO arg names broken, move to before ssa?
     InstantiationVisitor(ast, **pattern).visit_ast()
@@ -117,6 +167,13 @@ def get_analysis_data(ast, pattern, debug=False):
 
     scoped_constraints = cv.scoped_constraints
     path_feasibility_constraints = cv.path_feasibility_constraints
+
+    print("HERE Checking variable ssa map: ", variable_ssa_map)
+    print("Here checking ssa_variable_map: ", ssa_variable_map)
+
+    # This is to link if/else inner branches to outer branches
+    link_constraints_for_the_same_ssa_per_path_feasibility_constraints(
+        variable_ssa_map, ssa_variable_map, path_feasibility_constraints, tf_labels)
 
     sources = tfv.sources
     sinks = tfv.sinks
@@ -173,7 +230,7 @@ def main_experimental(ast, patterns, debug=False):
         # if debug: report("PATTERN:", pattern) # to compare to after their mutation
 
         tf_labels, scoped_constraints, path_feasibility_constraints, sources, sinks = get_analysis_data(
-            ast.copy(), pattern, debug=debug)
+            ast.copy(), pattern, variable_ssa_map, ssa_variable_map, debug=debug)
 
         vulnerabilities.extend(get_vulnerabilities(ast, pattern, variable_ssa_map,
                                ssa_variable_map, tf_labels, scoped_constraints, path_feasibility_constraints, sources, sinks))

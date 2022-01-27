@@ -40,6 +40,7 @@ class ConstraintsPathFlowSenstivityVisitor(Visitor):
         self.sinks = list()
         self.sanitizers = list()
         self.labels = list()
+        self.sym_connect_to_next_constraint_open = False
 
     @property
     def scoped_constraints(self):
@@ -143,11 +144,11 @@ class ConstraintsPathFlowSenstivityVisitor(Visitor):
         ((target_taint_qualifier, target_id),) = targets[0]
 
         for taint_qualifier, name in values:
-            print("Constraint line: ", node[AstTypes.Generic.lineno])
-            print("Constraint TQ: ", taint_qualifier)
-            print("Constraint Name: ", name)
-            print("Constraint Target TQ: ", target_taint_qualifier)
-            print("Constraint Target Name: ", target_id)
+            # print("Constraint line: ", node[AstTypes.Generic.lineno])
+            # print("Constraint TQ: ", taint_qualifier)
+            # print("Constraint Name: ", name)
+            # print("Constraint Target TQ: ", target_taint_qualifier)
+            # print("Constraint Target Name: ", target_id)
             constraint = Constraint(
                 node[AstTypes.Generic.lineno], taint_qualifier, name, target_taint_qualifier, target_id)
 
@@ -199,7 +200,41 @@ class ConstraintsPathFlowSenstivityVisitor(Visitor):
             self._scoped_constraints_object[self._scope]._scoped_constraints.append(
                 sym_constraint_from_sym_tq_to_first_body_tq)
 
+    def visit_If(self, node):
+        print("Visiting If")
+        test, body, orelse = self.super.visit_If(node)
+        print("TEST: ", test)
+        print("Body: ", body)
+        print("Orelse: ", orelse)
+
+        print("Openning sym connect to next constraint")
+        self.sym_connect_to_next_constraint_open = True
         # return self.super.visit_While(node)
+
+    # def get_last_constraints_with_same_inflow(self):
+    #     print("Getting them constraints")
+    #     last_constraints_with_same_inflow = list()
+    #     last_constraint = self._scoped_constraints_object[self._scope]._scoped_constraints[-1]
+    #     print("Last constraint rhs tq: ", last_constraint.rhs_tq)
+    #     inflow_tq = last_constraint.rhs_tq
+    #     new_inflow_tq = inflow_tq
+    #     last_constraints_with_same_inflow.append(last_constraint)
+    #     index = 1
+    #     print("Constraints: ",
+    #           self._scoped_constraints_object[self._scope]._scoped_constraints)
+    #     last_constraint = self._scoped_constraints_object[self._scope]._scoped_constraints[-2]
+
+    #     while new_inflow_tq == inflow_tq:
+    #         if len(self._scoped_constraints_object[
+    #                 self._scope]._scoped_constraints) < 1 + index - 1:
+    #             last_constraint = self._scoped_constraints_object[
+    #                 self._scope]._scoped_constraints[-1 - index]
+    #             last_constraints_with_same_inflow.append(last_constraint)
+    #             new_inflow_tq = last_constraint.rhs_tq
+    #             index += 1
+    #         else:
+    #             break
+    #     return last_constraints_with_same_inflow
 
     def visit_Call_args(self, nodes, lineno, return_qualifier, return_name):
         for node in nodes:
@@ -207,12 +242,12 @@ class ConstraintsPathFlowSenstivityVisitor(Visitor):
             values = self.visit_Call_arg(node)  # >1 if BinOp
             arg_qualifier = self.get_qualifier(arg)
             for taint_qualifier, name in values:
-                print("Return QF: ", return_qualifier)
-                print("Return Name: ", return_name)
-                print("Visit Call Args: ", values)
-                print("YOO")
-                print("TARGET_Function: ", return_name)
-                print("Target function name: ", name)
+                # print("Return QF: ", return_qualifier)
+                # print("Return Name: ", return_name)
+                # print("Visit Call Args: ", values)
+                # print("YOO")
+                # print("TARGET_Function: ", return_name)
+                # print("Target function name: ", name)
                 constraint_return = Constraint(
                     lineno, taint_qualifier, name, return_qualifier, return_name)
                 self._scoped_constraints_object[self._scope]._scoped_constraints.append(
@@ -226,15 +261,15 @@ class ConstraintsPathFlowSenstivityVisitor(Visitor):
 
                 self._scoped_constraints_object[self._scope]._functions = list(
                     dict.fromkeys(self._scoped_constraints_object[self._scope]._functions))
-                print("CONSTRAINT RETURN: ", constraint_return)
+                # print("CONSTRAINT RETURN: ", constraint_return)
                 # constraint_arg = Constraint(
                 #     lineno, taint_qualifier, name, arg_qualifier, arg)
                 # print("CONSTRAINT: ", constraint_arg)
-                print("CONSTRAINT arg taint qualifier: ", arg_taint_qualifier)
-                print("CONSTRAINT arg : ", arg)
-                print("CONSTRAINT name : ", name)
-                print("CONSTRAINT taint_q : ", taint_qualifier)
-                print("CONSTRAINT ARG QF: ", arg_qualifier)
+                # print("CONSTRAINT arg taint qualifier: ", arg_taint_qualifier)
+                # print("CONSTRAINT arg : ", arg)
+                # print("CONSTRAINT name : ", name)
+                # print("CONSTRAINT taint_q : ", taint_qualifier)
+                # print("CONSTRAINT ARG QF: ", arg_qualifier)
                 # print("Constraint args: ", constraint_arg)
                 # self._scoped_constraints_object[self._scope]._scoped_constraints.append(
                 # constraint_arg)
@@ -246,8 +281,20 @@ class ConstraintsPathFlowSenstivityVisitor(Visitor):
 
     def visit_Call(self, node):
         lineno, taint_qualifier, name = self.visit_Call_func(node['func'])
+        # print("Calling function and then going into arguments")
         self.visit_Call_args(node[AstTypes.Call.args],
                              lineno, taint_qualifier, name)
+        # print("Called function already")
+        # if self.sym_connect_to_next_constraint_open and len(self._scoped_constraints_object[self._scope]._scoped_constraints) > 0:
+        #     print("Got the sym connect oppened?: ",
+        #           self.sym_connect_to_next_constraint_open)
+        #     last_constraints_with_same_inflow = self.get_last_constraints_with_same_inflow()
+        #     last_constraint = self._scoped_constraints_object[self._scope]._scoped_constraints[-1]
+        #     print("Last Constraint: ", last_constraint)
+
+        #     print("Last constraints with same inflow: ",
+        #           last_constraints_with_same_inflow)
+        #     self.sym_connect_to_next_constraint_open = False
         return ((taint_qualifier, name), )
 
     def visit_Name(self, node):
